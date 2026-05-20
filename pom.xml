@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  hub — 모니터링 솔루션 데모 BE (walking skeleton).
+
+  Java 21 / Spring Boot 3.3.x / Maven.
+  1단계는 audit-events 토픽 한 종 소비 + in-memory Ring Buffer + AgentRegistry.
+  Quartz / Thymeleaf 의존성은 다음 단계에서 추가한다.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.5</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.monitoring</groupId>
+    <artifactId>hub</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>hub</name>
+    <description>모니터링 솔루션 데모 BE — Agent와의 양방향 통신 허브</description>
+
+    <properties>
+        <java.version>21</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <commons-collections4.version>4.4</commons-collections4.version>
+    </properties>
+
+    <dependencies>
+        <!-- Web — HealthController, Schedule/Command JSON API -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!--
+          Thymeleaf — 데모 단일 페이지 UI (spec §4.2).
+          본개발에서 LEGO + WebSocket으로 전환(ADR #8).
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+
+        <!-- Kafka consumer (audit/job-result/heartbeat) + producer (commands) -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+
+        <!--
+          Quartz — commands 토픽 발행을 트리거하는 스케줄러 (spec §5.1, ADR #17).
+          Spring Boot 자동구성이 SchedulerFactoryBean + SpringBeanJobFactory를 등록해
+          Quartz Job 안에서 Spring 빈을 autowire할 수 있게 한다.
+          데모는 in-memory JobStore (RAMJobStore). 영속화는 본개발 영역.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-quartz</artifactId>
+        </dependency>
+
+        <!-- @ConfigurationProperties validation 대비 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- spec §4.3 ring buffer 구현체 — CircularFifoQueue -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+            <version>${commons-collections4.version}</version>
+        </dependency>
+
+        <!-- 테스트 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

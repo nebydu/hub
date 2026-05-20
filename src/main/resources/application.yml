@@ -1,0 +1,48 @@
+# hub 애플리케이션 설정.
+
+spring:
+  application:
+    name: hub
+
+  # spec의 payload는 snake_case이므로 Jackson 전역 정책으로 매핑한다.
+  # 도메인 클래스는 Java camelCase로 두고 @JsonProperty 산발 사용을 피한다.
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+
+  # Thymeleaf — 데모 단계는 캐시 비활성화 (템플릿 수정 즉시 반영).
+  # 본개발/운영은 cache=true.
+  thymeleaf:
+    cache: false
+
+  # Kafka 기본 설정. brokers는 hub.kafka.brokers를 단일 진실로 사용하므로 여기서는
+  # 명시하지 않는다 — KafkaConfig의 ConsumerFactory/ProducerFactory가 직접 주입한다.
+  # group.id / offset 정책 등 Spring Kafka 표준 키만 둠.
+  kafka:
+    consumer:
+      group-id: hub-audit-consumer
+      auto-offset-reset: earliest
+
+  # Quartz 자동구성 — 데모는 in-memory(RAMJobStore). 영속화는 본개발 영역(ADR #12).
+  # spec §5.1 misfire는 Trigger 생성 시점에 DO_NOTHING으로 설정(ScheduleService 참조).
+  quartz:
+    job-store-type: memory
+    auto-startup: true
+
+# hub 도메인 설정 (com.monitoring.hub.config.AppProperties와 매핑).
+hub:
+  kafka:
+    # 인프라의 docker-compose가 노출한 HOST listener와 일치 (spec § 인프라 전제).
+    # 환경변수 HUB_KAFKA_BOOTSTRAP으로 override 가능.
+    brokers: ${HUB_KAFKA_BOOTSTRAP:localhost:9092}
+  audit:
+    # spec §4.3 audit-events ring buffer 크기.
+    ring-buffer-size: 200
+  job:
+    # spec §4.3 job-results ring buffer 크기.
+    ring-buffer-size: 100
+  command:
+    # spec §4.3 commands ring buffer 크기 (BE 발행 이력).
+    ring-buffer-size: 50
+  agent:
+    # heartbeat 경로가 추가되는 다음 단계에서 사용. 1단계는 값만 보관.
+    heartbeat-timeout-seconds: 30

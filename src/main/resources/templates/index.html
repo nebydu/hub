@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<!--
+  데모 단일 페이지 UI. spec §4.2 — Schedule 등록 폼 하나에서 job_type/spec/cron/
+  target_agent_id를 모두 받고 화면에 모든 in-memory state를 노출.
+  본개발에서 LEGO + WebSocket으로 전환 예정 (ADR #8).
+-->
+<head>
+    <meta charset="UTF-8"/>
+    <title>monitoring hub — 데모 콘솔</title>
+    <style>
+        body { font-family: -apple-system, "Segoe UI", sans-serif; margin: 0; padding: 0;
+               background: #f4f5f7; color: #222; font-size: 14px; }
+        header { background: #1f2937; color: #fff; padding: 16px 24px; }
+        header h1 { margin: 0; font-size: 18px; }
+        header .meta { font-size: 12px; color: #cbd5e1; margin-top: 4px; }
+        main { max-width: 1280px; margin: 0 auto; padding: 16px 24px 48px; }
+        section { background: #fff; border: 1px solid #e5e7eb; border-radius: 6px;
+                  margin-bottom: 16px; padding: 12px 16px; }
+        section h2 { margin: 0 0 8px; font-size: 14px; color: #374151;
+                     border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid #f1f5f9;
+                 vertical-align: top; }
+        th { background: #f8fafc; font-weight: 600; color: #475569; }
+        .pill { display: inline-block; padding: 1px 8px; border-radius: 10px;
+                font-size: 11px; font-weight: 600; }
+        .pill-online { background: #d1fae5; color: #065f46; }
+        .pill-offline { background: #fee2e2; color: #991b1b; }
+        .pill-stale { background: #fef3c7; color: #92400e; }
+        .pill-success { background: #d1fae5; color: #065f46; }
+        .pill-fail { background: #fee2e2; color: #991b1b; }
+        .pill-timeout { background: #fef3c7; color: #92400e; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+        .empty { color: #94a3b8; font-style: italic; padding: 8px 0; }
+        form .row { display: flex; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+        form label { display: flex; flex-direction: column; font-size: 12px;
+                     color: #475569; flex: 1; min-width: 120px; }
+        form input, form select { padding: 6px 8px; font-size: 13px;
+                                  border: 1px solid #cbd5e1; border-radius: 4px;
+                                  background: #fff; }
+        form fieldset { border: 1px dashed #cbd5e1; border-radius: 4px; padding: 8px 12px;
+                        margin: 8px 0 0; }
+        form legend { font-size: 12px; color: #64748b; padding: 0 4px; }
+        form button { background: #1f2937; color: #fff; border: none; padding: 8px 16px;
+                      border-radius: 4px; cursor: pointer; font-weight: 600; }
+        form button:hover { background: #111827; }
+        code { font-family: "Cascadia Code", Consolas, monospace; font-size: 11px;
+               background: #f1f5f9; padding: 1px 4px; border-radius: 3px; }
+        details summary { cursor: pointer; color: #475569; font-size: 11px; }
+        .mono { font-family: "Cascadia Code", Consolas, monospace; font-size: 11px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>monitoring hub — 데모 콘솔</h1>
+    <div class="meta">
+        현재 시각 <span th:text="${now}">2026-05-20T00:00:00Z</span>
+        · heartbeat timeout <span th:text="${heartbeatTimeoutSeconds}">30</span>s
+        (spec §3.2)
+    </div>
+</header>
+
+<main>
+
+    <!-- ============= Agent 목록 ============= -->
+    <section>
+        <h2>등록 Agent
+            <span th:text="'(' + ${#lists.size(agents)} + ')'" style="font-weight: normal; color:#94a3b8;">(0)</span>
+        </h2>
+        <div th:if="${#lists.isEmpty(agents)}" class="empty">등록된 Agent 없음 — script-agent를 실행하세요.</div>
+        <table th:unless="${#lists.isEmpty(agents)}">
+            <thead>
+            <tr>
+                <th>agent_id</th>
+                <th>hostname</th>
+                <th>os</th>
+                <th>agent_ver</th>
+                <th>state</th>
+                <th>last_seen (audit/heartbeat)</th>
+                <th>heartbeat (latest map)</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="a : ${agents}">
+                <td class="mono" th:text="${a.agentId}">agent-uuid</td>
+                <td th:text="${a.hostname}">host</td>
+                <td th:text="${a.os}">linux/amd64</td>
+                <td th:text="${a.agentVersion}">0.1.0</td>
+                <td>
+                    <span th:if="${a.state.name() == 'ONLINE'}" class="pill pill-online">ONLINE</span>
+                    <span th:if="${a.state.name() == 'OFFLINE'}" class="pill pill-offline">OFFLINE</span>
+                </td>
+                <td class="mono" th:text="${a.lastSeen}">2026-05-20T00:00:00Z</td>
+                <td class="mono"
+                    th:with="hb=${heartbeats.get(a.agentId)}"
+                    th:text="${hb != null} ? ${hb.lastSeen} : '—'">—</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- ============= Schedule 등록 폼 ============= -->
+    <section>
+        <h2>Schedule 등록 (spec §4.2 — Job + Schedule을 한 폼에서 동시에 생성)</h2>
+        <form th:action="@{/ui/schedules}" method="post">
+            <div class="row">
+                <label>job_type
+                    <select id="jobType" name="jobType" onchange="toggleJobFields()">
+                        <option th:each="t : ${jobTypes}" th:value="${t}" th:text="${t}">SCRIPT_JOB</option>
+                    </select>
+                </label>
+                <label>target_agent_id
+                    <input name="targetAgentId" required placeholder="agent-uuid"/>
+                </label>
+                <label>cron (Quartz)
+                    <input name="cron" required placeholder="0 0/5 * * * ?"/>
+                </label>
+            </div>
+
+            <fieldset id="scriptFields">
+                <legend>SCRIPT_JOB spec (§5.1.1)</legend>
+                <div class="row">
+                    <label>script_path
+                        <input name="scriptPath" placeholder="/opt/scripts/check_disk.sh"/>
+                    </label>
+                    <label>args (콤마 구분)
+                        <input name="args" placeholder="--threshold,80"/>
+                    </label>
+                    <label>timeout_seconds
+                        <input type="number" name="timeoutSeconds" placeholder="30"/>
+                    </label>
+                    <label>output_cap_bytes
+                        <input type="number" name="outputCapBytes" placeholder="65536"/>
+                    </label>
+                </div>
+            </fieldset>
+
+            <fieldset id="logFields" style="display:none;">
+                <legend>LOG_JOB spec (§5.1.2)</legend>
+                <div class="row">
+                    <label>log_path
+                        <input name="logPath" placeholder="/var/log/app/error.log"/>
+                    </label>
+                    <label>pattern
+                        <input name="pattern" placeholder="ERROR|FATAL"/>
+                    </label>
+                    <label>encoding
+                        <input name="encoding" placeholder="UTF-8"/>
+                    </label>
+                </div>
+            </fieldset>
+
+            <div class="row" style="margin-top: 12px;">
+                <button type="submit">등록</button>
+            </div>
+        </form>
+        <script>
+            function toggleJobFields() {
+                var v = document.getElementById('jobType').value;
+                document.getElementById('scriptFields').style.display = (v === 'SCRIPT_JOB') ? '' : 'none';
+                document.getElementById('logFields').style.display = (v === 'LOG_JOB') ? '' : 'none';
+            }
+        </script>
+    </section>
+
+    <!-- ============= Schedule 목록 ============= -->
+    <section>
+        <h2>등록된 Schedule
+            <span th:text="'(' + ${#lists.size(schedules)} + ')'" style="font-weight: normal; color:#94a3b8;">(0)</span>
+        </h2>
+        <div th:if="${#lists.isEmpty(schedules)}" class="empty">등록된 Schedule 없음.</div>
+        <table th:unless="${#lists.isEmpty(schedules)}">
+            <thead>
+            <tr>
+                <th>schedule_id</th>
+                <th>job_id</th>
+                <th>target_agent_id</th>
+                <th>cron</th>
+                <th>enabled</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="s : ${schedules}">
+                <td class="mono" th:text="${s.scheduleId}"></td>
+                <td class="mono" th:text="${s.jobId}"></td>
+                <td class="mono" th:text="${s.targetAgentId}"></td>
+                <td><code th:text="${s.cronExpression}"></code></td>
+                <td th:text="${s.enabled}">true</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- ============= 3종 패널 ============= -->
+    <div class="grid-3">
+
+        <section>
+            <h2>최근 commands
+                <span th:text="'(' + ${#lists.size(commands)} + ')'" style="font-weight: normal; color:#94a3b8;">(0)</span>
+            </h2>
+            <div th:if="${#lists.isEmpty(commands)}" class="empty">발행된 명령 없음.</div>
+            <table th:unless="${#lists.isEmpty(commands)}">
+                <thead>
+                <tr><th>issued_at</th><th>target</th><th>type</th><th>valid_until</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="c : ${commands}">
+                    <td class="mono" th:text="${c.issuedAt}"></td>
+                    <td class="mono" th:text="${c.targetAgentId}"></td>
+                    <td th:text="${c.jobType}"></td>
+                    <td class="mono" th:text="${c.validUntil}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>최근 job-results
+                <span th:text="'(' + ${#lists.size(jobResults)} + ')'" style="font-weight: normal; color:#94a3b8;">(0)</span>
+            </h2>
+            <div th:if="${#lists.isEmpty(jobResults)}" class="empty">수신된 결과 없음.</div>
+            <table th:unless="${#lists.isEmpty(jobResults)}">
+                <thead>
+                <tr><th>finished_at</th><th>agent</th><th>type</th><th>status</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="r : ${jobResults}">
+                    <td class="mono" th:text="${r.finishedAt}"></td>
+                    <td class="mono" th:text="${r.agentId}"></td>
+                    <td th:text="${r.jobType}"></td>
+                    <td>
+                        <span th:if="${r.status.name() == 'SUCCESS'}" class="pill pill-success">SUCCESS</span>
+                        <span th:if="${r.status.name() == 'FAIL'}" class="pill pill-fail">FAIL</span>
+                        <span th:if="${r.status.name() == 'TIMEOUT'}" class="pill pill-timeout">TIMEOUT</span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>최근 audit-events
+                <span th:text="'(' + ${#lists.size(auditEvents)} + ')'" style="font-weight: normal; color:#94a3b8;">(0)</span>
+            </h2>
+            <div th:if="${#lists.isEmpty(auditEvents)}" class="empty">수신된 감사 이벤트 없음.</div>
+            <table th:unless="${#lists.isEmpty(auditEvents)}">
+                <thead>
+                <tr><th>occurred_at</th><th>action</th><th>actor</th><th>result</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="e : ${auditEvents}">
+                    <td class="mono" th:text="${e.occurredAt}"></td>
+                    <td th:text="${e.action}"></td>
+                    <td class="mono" th:text="${e.actor.id}"></td>
+                    <td>
+                        <span th:if="${e.result.name() == 'SUCCESS'}" class="pill pill-success">SUCCESS</span>
+                        <span th:if="${e.result.name() == 'FAIL'}" class="pill pill-fail">FAIL</span>
+                        <span th:if="${e.result.name() == 'TIMEOUT'}" class="pill pill-timeout">TIMEOUT</span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+
+    </div>
+
+</main>
+
+</body>
+</html>
