@@ -75,14 +75,18 @@ public class KafkaConfig {
     @Bean
     public ConsumerFactory<String, AuditEvent> auditEventConsumerFactory(
             AppProperties appProperties,
-            KafkaProperties kafkaProperties) {
+            KafkaProperties kafkaProperties,
+            ObjectMapper objectMapper) {
 
         Map<String, Object> props = new HashMap<>(kafkaProperties.buildConsumerProperties(null));
         // brokers 단일 진실: hub.kafka.brokers.
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, appProperties.kafka().brokers());
 
         StringDeserializer keyDeserializer = new StringDeserializer();
-        JsonDeserializer<AuditEvent> valueDeserializer = new JsonDeserializer<>(AuditEvent.class, false);
+        // 글로벌 ObjectMapper(snake_case 정책 + JavaTimeModule)를 주입 — payload가
+        // snake_case로 발행되므로 자체 ObjectMapper(camelCase 디폴트)를 쓰면
+        // event_id/occurred_at 같은 필드가 null로 매핑된다.
+        JsonDeserializer<AuditEvent> valueDeserializer = new JsonDeserializer<>(AuditEvent.class, objectMapper, false);
         valueDeserializer.ignoreTypeHeaders();
         // spec §2.4 payload 외부에서 온 신뢰 가능 클래스 단일.
         valueDeserializer.addTrustedPackages("com.monitoring.hub.domain.audit");
@@ -115,13 +119,15 @@ public class KafkaConfig {
     @Bean
     public ConsumerFactory<String, JobResult> jobResultConsumerFactory(
             AppProperties appProperties,
-            KafkaProperties kafkaProperties) {
+            KafkaProperties kafkaProperties,
+            ObjectMapper objectMapper) {
 
         Map<String, Object> props = new HashMap<>(kafkaProperties.buildConsumerProperties(null));
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, appProperties.kafka().brokers());
 
         StringDeserializer keyDeserializer = new StringDeserializer();
-        JsonDeserializer<JobResult> valueDeserializer = new JsonDeserializer<>(JobResult.class, false);
+        // auditEventConsumerFactory와 같은 이유로 글로벌 ObjectMapper 주입.
+        JsonDeserializer<JobResult> valueDeserializer = new JsonDeserializer<>(JobResult.class, objectMapper, false);
         valueDeserializer.ignoreTypeHeaders();
         valueDeserializer.addTrustedPackages("com.monitoring.hub.domain.job");
 
