@@ -12,3 +12,11 @@ HELP.md
 
 # 애플리케이션 런타임 로그
 *.log
+
+# codex-gate Stop hook 상태 파일 (런타임 생성, 추적 제외)
+.claude/.codex-gate-state
+.claude/codex-gate.log
+.claude/codex-gate-escalation.log
+.claude/.codex-gate-issues.txt
+.claude/.codex-gate-stderr.txt
+.claude/.codex-last-message.json
