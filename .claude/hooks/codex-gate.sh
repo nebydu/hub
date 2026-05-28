@@ -23,6 +23,9 @@ EMPTY_TREE="4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 log_line() { # verdict | crit_count | viol_count | triggered_files
   printf '%s | %s | %s | %s | %s\n' "$(date -Is)" "$1" "$2" "$3" "$4" >> "$LOG_FILE"
 }
+emit_system_message() { # message
+  python -c 'import json, sys; print(json.dumps({"systemMessage": sys.argv[1]}, ensure_ascii=False))' "$1"
+}
 escalate() { # message
   printf '%s | %s\n' "$(date -Is)" "$1" >> "$ESC_LOG"
 }
@@ -82,6 +85,7 @@ TRIG_CSV="$(printf '%s' "$TRIGGERED" | grep -v '^$' | tr '\n' ',' | sed 's/,$//'
 if [ -z "$TRIG_CSV" ]; then
   # .claude/, docs/, analysis/ 등 비코드 산출물만 변경 → 매번 검토 비용 크므로 스킵
   log_line "skipped" 0 0 "(no code change)"
+  emit_system_message "[codex-gate] SKIP: src/main, src/test, pom.xml 변경이 없어 Codex 검증을 건너뜁니다."
   exit 0
 fi
 
@@ -164,6 +168,7 @@ VIOL_COUNT="$(printf '%s' "$PARSE_OUT" | cut -f3)"
 if [ "$VERDICT" = "pass" ]; then
   log_line "pass" "$CRIT_COUNT" "$VIOL_COUNT" "$TRIG_CSV"
   reset_state
+  emit_system_message "[codex-gate] PASS: Codex 검증 완료. blocking issue 없음, 수정사항 없음. 대상: $TRIG_CSV"
   exit 0
 fi
 
