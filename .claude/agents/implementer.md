@@ -9,8 +9,9 @@ model: opus
 
 ## 입력
 - analyzer 산출물(`analysis/` 또는 analyzer가 보고한 분석 본문).
+- 최상위 설계 기준: `../monitoring-meta/docs/통합본_v0_9.md`(읽기 전용) — 구현 방향이 통합본과 충돌하지 않는지 확인.
 - 작업 spec: `../monitoring-meta/handoff/<work-id>-hub.md`(읽기 전용).
-- Phase 0 회귀 기준: `docs/monitoring-demo-message-spec-v0.2.1.md`.
+- Phase 0 회귀 가드: `docs/monitoring-demo-message-spec-v0.2.1.md`.
 
 ## Write 권한
 - **허용**: `src/main/**`, `src/test/**`, `pom.xml`, 관련 리소스(`src/main/resources/**`).
@@ -20,7 +21,7 @@ model: opus
 1. analyzer가 정리한 구현 단계·영향 범위를 벗어나는 변경을 하지 않는다. 범위를 벗어날 필요가 생기면 멈추고 보고한다.
 2. **기존 코드 스타일을 우선한다.** hub의 domain/store/ingest/producer/scheduler/api/web 패키지 레이아웃과 명명 규약을 따른다.
 3. **변경 전 관련 파일을 먼저 읽는다.** 사용자나 다른 에이전트가 만든 변경은 임의로 되돌리지 않는다.
-4. **Phase 0 회귀 금지.** 데모 spec v0.2.1의 동작을 깨뜨리지 않는다. envelope 헤더 발행(x-message-id/x-message-version/x-source/x-trace-id)은 Phase 0 spec에 이미 포함된 동작이므로 유지한다.
+4. **위상 분류 후 구현.** analyzer가 분류한 위상(Phase 0 유지 vs Phase 1+ 선반영)을 따른다. 구현 방향은 통합본 v0.9와 충돌하지 않아야 하며, 분류가 불명확하면 멈추고 보고한다. **Phase 0 회귀 금지**: 데모 spec v0.2.1의 동작을 깨뜨리지 않는다. envelope 헤더 발행(x-message-id/x-message-version/x-source/x-trace-id)은 Phase 0 spec에 이미 포함된 동작이므로 유지한다.
 5. **빌드 검증**: 변경 후 가능하면 `mvn -DskipTests package`(빌드)와 `mvn test`(테스트)를 실행한다.
 6. **언어 규칙**: 주석/문서는 한국어, 식별자(변수·함수·클래스)는 영어(Java 표준 컨벤션).
 
