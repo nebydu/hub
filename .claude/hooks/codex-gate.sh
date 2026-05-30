@@ -23,8 +23,14 @@ EMPTY_TREE="4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 log_line() { # verdict | crit_count | viol_count | triggered_files
   printf '%s | %s | %s | %s | %s\n' "$(date -Is)" "$1" "$2" "$3" "$4" >> "$LOG_FILE"
 }
+emit_system_message() { # message
+  # Windows python stdout 기본 인코딩(cp949)에서는 em-dash 등 비-cp949 문자가 크래시하므로 UTF-8로 강제.
+  # Claude Code가 hook stdout을 UTF-8 JSON으로 읽으므로 한글도 이때 정상 표시된다.
+  python -c 'import json, sys; sys.stdout.reconfigure(encoding="utf-8"); print(json.dumps({"systemMessage": sys.argv[1]}, ensure_ascii=False))' "$1"
+}
 escalate() { # message
   printf '%s | %s\n' "$(date -Is)" "$1" >> "$ESC_LOG"
+  emit_system_message "게이트 강제 통과 — 사람 확인 필요: $1"
 }
 read_state() {
   FAIL_COUNT=0; PARSE_FAIL_COUNT=0
@@ -82,6 +88,7 @@ TRIG_CSV="$(printf '%s' "$TRIGGERED" | grep -v '^$' | tr '\n' ',' | sed 's/,$//'
 if [ -z "$TRIG_CSV" ]; then
   # .claude/, docs/, analysis/ 등 비코드 산출물만 변경 → 매번 검토 비용 크므로 스킵
   log_line "skipped" 0 0 "(no code change)"
+  emit_system_message "[codex-gate] SKIP: src/main, src/test, pom.xml 변경이 없어 Codex 검증을 건너뜁니다."
   exit 0
 fi
 
@@ -100,7 +107,7 @@ $TRIGGERED
 EOF
 
 # ── 4) Codex 호출 (fallback: codex exec, read-only) ──────────────────────
-PROMPT="hub(Java/Spring Boot) 코드 변경 리뷰. 다음을 read-only로만 검토하고 codex-schema.json 형식의 JSON으로만 응답하라: (1) 버그·회귀 가능성 (2) Phase 0 데모 spec docs/monitoring-demo-message-spec-v0.2.1.md와의 명세 불일치 (3) 통합본 v0.9 §7.2 β 구조의 메인 BE(Auth/Job/Approval/Knox/Validation/Agent State)와 분리 대상(rule-engine/Script Result/Alert·Incident/Notification/Metric Ingest) 사이 모듈 경계 위반 (4) 테스트 누락. 빌드 검증 기준은 'mvn package'(테스트 포함), 'mvn -DskipTests package'(빌드만). 위상 주의: envelope.md는 Phase 1 목표이고 hub 코드는 Phase 0 위상이므로, envelope consumer측 동작(중복검사/trace복원) 미구현은 위반이 아니다."
+PROMPT="hub(Java/Spring Boot) 코드 변경 리뷰. 통합본 v0.9(../monitoring-meta/docs/통합본_v0_9.md)가 전체 제품/아키텍처 최상위 기준이다. 다음을 read-only로만 검토하고 codex-schema.json 형식의 JSON으로만 응답하라: (1) 통합본 v0.9 기준 전체 제품/아키텍처 방향 위반 (2) 현재 작업 위상 분류 오류(Phase 0 유지 vs Phase 1+ 선반영) (3) Phase 0 데모 spec docs/monitoring-demo-message-spec-v0.2.1.md 회귀 (4) envelope/kafka-payloads 메시징 계약 위반 (5) 통합본 v0.9 §7.2 β 구조의 메인 BE(Auth/Job/Approval/Knox/Validation/Agent State)와 분리 대상(rule-engine/Script Result/Alert·Incident/Notification/Metric Ingest) 사이 모듈 경계 위반 (6) 버그·회귀 가능성 (7) 테스트 누락. 참고: handoff 작업 spec 정합성은 이 gate가 아니라 analyzer/spec-guardian이 담당하므로 여기서 검사하지 않는다(이 gate 입력에는 handoff가 포함되지 않음). 빌드 검증 기준은 'mvn package'(테스트 포함), 'mvn -DskipTests package'(빌드만). 위상 주의: 통합본의 Phase 1+ 목표를 Phase 0 코드에 무조건 강제하지 말 것. envelope.md는 Phase 1 목표이고 hub 코드는 Phase 0 위상이므로, envelope consumer측 동작(중복검사/trace복원) 미구현은 위반이 아니다."
 
 rm -f "$LAST_MSG" "$ISSUES_FILE"
 set +e
@@ -164,6 +171,7 @@ VIOL_COUNT="$(printf '%s' "$PARSE_OUT" | cut -f3)"
 if [ "$VERDICT" = "pass" ]; then
   log_line "pass" "$CRIT_COUNT" "$VIOL_COUNT" "$TRIG_CSV"
   reset_state
+  emit_system_message "[codex-gate] PASS: Codex 검증 완료. blocking issue 없음, 수정사항 없음. 대상: $TRIG_CSV"
   exit 0
 fi
 

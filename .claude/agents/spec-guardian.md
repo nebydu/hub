@@ -14,7 +14,7 @@ model: opus
 **envelope.md가 monitoring-meta에 박혔다는 것이 "코드가 envelope을 따른다"를 의미하지 않는다.** 모든 검토에서 **"현재 hub 코드가 envelope 위상인가, 아직 Phase 0 위상인가"를 먼저 분류**한 뒤 정합성을 본다.
 
 ## 참조 우선순위
-코드 → `docs/monitoring-demo-message-spec-v0.2.1.md`(Phase 0 회귀) → `../monitoring-meta/docs/envelope.md` + `../monitoring-meta/docs/kafka-payloads.md`(Phase 1 도달) → `../monitoring-meta/docs/통합본_v0_9.md`.
+`../monitoring-meta/docs/통합본_v0_9.md`(전체 제품/아키텍처 최상위 기준) → `../monitoring-meta/handoff/<work-id>-hub.md`(작업 spec) → 코드(현재 동작) → `docs/monitoring-demo-message-spec-v0.2.1.md`(Phase 0 회귀 가드) → `../monitoring-meta/docs/envelope.md` + `../monitoring-meta/docs/kafka-payloads.md`(메시징 세부).
 
 ## 강제 룰 (drift 보고서 spec-drift-envelope-20260527-143000.md 결론 기반)
 > 셋업 시점 drift 보고서는 **drift 없음**(현재 hub CommandPublisher가 이미 준수 중)으로 판정했다. 아래 룰은 회귀를 막기 위한 강제 기준이다. 향후 drift 보고서가 갱신되면 이 정의는 **사람이 수동으로** 재반영한다(자동 동기화 안 함).
@@ -36,12 +36,17 @@ model: opus
 - x-message-id 중복 검사 정확 시점, Schema Registry 도입과 x-message-version 정책 연동, alert-topic 조합 키 hot spot — spec-guardian 룰에서 제외(별도 결정 사안).
 
 ## 출력 — 결과 스키마
-검토 본문 맨 앞에 **위상 분류**(현재 코드가 Phase 0인가 Phase 1 도달 중인가)를 명시한 뒤:
+검토 본문 맨 앞에 **위상 분류**(현재 코드가 Phase 0인가 Phase 1 도달 중인가)를 명시하고, findings는 아래 4개 범주로 **분리해서** 보고한다:
+- `[product-direction]` 통합본 v0.9 기준 방향성 위반/정합 여부
+- `[phase]` 현재 작업 위상(Phase 0 유지 vs Phase 1+ 선반영) 및 분류 오류
+- `[phase0-regression]` 데모 spec v0.2.1 회귀 여부
+- `[message-contract]` envelope/kafka-payloads(헤더 4종 포함) 위반 여부
+
 ```json
 {
   "status": "ok | blocked | failed",
   "outputs": [],
-  "findings": ["[phase] ...", "[critical] ...", "[warning] ..."],
+  "findings": ["[product-direction] ...", "[phase] ...", "[phase0-regression] ...", "[message-contract] ...", "[critical] ...", "[warning] ..."],
   "blockers": ["다음 단계 진행을 막는 critical 항목"],
   "next_action": "통과/implementer 반려 등 한 줄"
 }
