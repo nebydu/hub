@@ -24,10 +24,13 @@ log_line() { # verdict | crit_count | viol_count | triggered_files
   printf '%s | %s | %s | %s | %s\n' "$(date -Is)" "$1" "$2" "$3" "$4" >> "$LOG_FILE"
 }
 emit_system_message() { # message
-  python -c 'import json, sys; print(json.dumps({"systemMessage": sys.argv[1]}, ensure_ascii=False))' "$1"
+  # Windows python stdout 기본 인코딩(cp949)에서는 em-dash 등 비-cp949 문자가 크래시하므로 UTF-8로 강제.
+  # Claude Code가 hook stdout을 UTF-8 JSON으로 읽으므로 한글도 이때 정상 표시된다.
+  python -c 'import json, sys; sys.stdout.reconfigure(encoding="utf-8"); print(json.dumps({"systemMessage": sys.argv[1]}, ensure_ascii=False))' "$1"
 }
 escalate() { # message
   printf '%s | %s\n' "$(date -Is)" "$1" >> "$ESC_LOG"
+  emit_system_message "게이트 강제 통과 — 사람 확인 필요: $1"
 }
 read_state() {
   FAIL_COUNT=0; PARSE_FAIL_COUNT=0

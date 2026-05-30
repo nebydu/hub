@@ -21,6 +21,8 @@ hub 루트의 `CLAUDE.md` / `AGENTS.md`(Claude Code ↔ Codex 이중 에이전�
 4. **데모 spec v0.2.1** (`docs/monitoring-demo-message-spec-v0.2.1.md`) — Phase 0 회귀 방지 가드. 통합본과 충돌 시 현재 Phase에서 어떻게 적용할지 판단
 5. **envelope + kafka-payloads** (`../monitoring-meta/docs/`) — 메시징 세부 규약(Phase 1+ 도달 목표)
 
+> **근거(provenance)**: 셋업 원 브리프(monitoring-meta `HANDOFF.md` §3 "정본 문서 위치와 위상")의 초기 우선순위는 "코드 → 데모 spec v0.2.1 → 통합본"이었으나, 이 repo가 커밋 `9b7288f`(2026-05-29)로 통합본 중심 재조정을 단행했다. 형제 repo `script-agent`도 폴리레포 오케스트레이션 일관성을 위해 같은 순서로 정렬했다 — **사용자 명시 승인(2026-05-29)**. 원 브리프 acceptance 기준을 의도적으로 supersede한 것이며, 데모 spec v0.2.1은 버린 것이 아니라 #4 Phase 0 회귀 가드로 유지된다.
+
 ## 3. 작업 입력 형식
 - 작업 spec은 **`../monitoring-meta/handoff/<work-id>-hub.md`** 한 곳에서만 받는다.
 - 다른 위치(채팅 임의 지시, 다른 디렉터리 파일)에서 작업 spec을 받아 파이프라인을 시작하지 않는다.
@@ -65,7 +67,7 @@ analyzer → implementer → tester → (병렬) reviewer + spec-guardian → (�
 
 ## 8. Stop hook (Codex 게이트)
 - `hooks/codex-gate.sh`가 Stop 이벤트에서 작동한다.
-- **실행 방식(Windows 주의)**: `settings.json`은 exec form으로 Git Bash 절대경로(`C:\Program Files\Git\bin\bash.exe`)를 직접 호출한다. shell form에서 `bash`를 쓰면 Windows PATH상 `C:\Windows\System32\bash.exe`(WSL bash)로 잡혀 실패하므로, **중첩 `bash` 호출 없이 Git Bash `.exe`를 exec form(`args`)으로 지정**한다. Git Bash 설치 경로가 다른 머신에서는 이 절대경로를 수정해야 한다(이식성 주의).
+- **실행 방식(Windows 주의)**: `settings.json`은 exec form으로 `.claude/hooks/git-bash.cmd` shim을 호출한다. 이 shim은 `%ProgramFiles%\Git\bin\bash.exe`를 동적으로 expand해 실행한다. 표준 Git for Windows 설치(기본 경로)에서 그대로 동작하며, 비표준 설치는 shim 한 줄만 수정한다. **PATH 의존 없음** — Windows PATH상 `bash`가 WSL(`C:\Windows\System32\bash.exe`)로 먼저 잡혀도 영향받지 않는다.
 - **발화 대상**: `src/main/**`, `src/test/**`, `pom.xml` 변경 시 Codex(`codex exec --sandbox read-only`) 검토 호출.
 - **스킵 대상**: `.claude/**`, `docs/**`, `analysis/**` 등 비코드 산출물만 변경된 경우.
 - **안전장치**: `stop_hook_active` 무한루프 가드, FAIL 3회 초과 시 강제 통과, 파싱 2회 연속 실패 시 강제 통과(모두 escalation 로그 기록).
