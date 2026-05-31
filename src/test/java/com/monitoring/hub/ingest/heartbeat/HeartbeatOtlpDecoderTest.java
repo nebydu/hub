@@ -1,18 +1,16 @@
 package com.monitoring.hub.ingest.heartbeat;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
 import java.util.List;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.monitoring.hub.config.KafkaConfig;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.monitoring.hub.ingest.heartbeat.HeartbeatOtlpDecoder.DecodedHeartbeat;
-import com.monitoring.hub.store.AgentRegistry;
-import com.monitoring.hub.store.HeartbeatLatestMap;
 
 import io.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest;
 import io.opentelemetry.proto.common.v1.AnyValue;
@@ -24,48 +22,39 @@ import io.opentelemetry.proto.metrics.v1.ResourceMetrics;
 import io.opentelemetry.proto.metrics.v1.ScopeMetrics;
 
 /**
- * HeartbeatConsumer 통합 테스트 — 스토어(HeartbeatLatestMap, AgentRegistry) 반영 검증.
+ * HeartbeatOtlpDecoder 단위 테스트.
  *
- * <p>OTLP proto 바이트 fixture를 사용해 spec §5.4 / 데모 spec v0.2.1 §5.4 회귀 5종을 보존한다.
+ * <p>OTLP proto 빌더로 fixture byte[]를 조립해 디코더의 추출 로직을 검증한다.
+ * spec §5.4.2 / ADR #2(B-1) 회귀 방지.
  *
- * <p>케이스 목록:
- * <ol>
- *   <li>gauge 정상 파싱 + HeartbeatLatestMap 갱신 (Instant 변환 회귀 포인트 포함)</li>
- *   <li>unknown metric name 무시</li>
- *   <li>agent_id attribute 없는 dataPoint skip</li>
- *   <li>AgentRegistry lastSeen 갱신</li>
- *   <li>멀티 dataPoint / 멀티 agent 처리</li>
- *   <li>null/빈 byte[] skip</li>
- * </ol>
+ * <p>핵심 회귀 포인트: time_unix_nano는 JSON 위상에서는 string이었으나, proto 위상에서는
+ * fixed64(long 정수)다. 동일 long 값으로 조립 → 동일 Instant가 나와야 한다.
  */
-class HeartbeatConsumerTest {
+class HeartbeatOtlpDecoderTest {
 
-    /** 테스트 기준 시각 nanoseconds: 2025-05-20T07:00:00Z */
+    /** 테스트 기준 시각: 2025-05-20T07:00:00Z 에 해당하는 nanoseconds */
     private static final long NANOS = 1_747_734_000_000_000_000L;
 
-    /** NANOS → Instant 기대 값 (proto fixed64 → Instant 변환 회귀 포인트) */
+    /** NANOS를 Instant로 변환한 기대 값 */
     private static final Instant EXPECTED_INSTANT = Instant.ofEpochSecond(1_747_734_000L);
 
     private static final String AGENT_ID = "agent-001";
 
-    private HeartbeatLatestMap latestMap;
-    private AgentRegistry registry;
-    /** 실제 디코더를 주입해 end-to-end proto 파싱 경로를 검증한다. */
-    private HeartbeatConsumer consumer;
+    private HeartbeatOtlpDecoder decoder;
 
     @BeforeEach
     void setUp() {
-        latestMap = new HeartbeatLatestMap();
-        registry = new AgentRegistry();
-        HeartbeatOtlpDecoder decoder = new HeartbeatOtlpDecoder();
-        consumer = new HeartbeatConsumer(decoder, latestMap, registry);
+        decoder = new HeartbeatOtlpDecoder();
     }
 
     // -----------------------------------------------------------------------
     // 헬퍼: proto fixture 조립
     // -----------------------------------------------------------------------
 
-    /** 단일 Gauge dataPoint가 담긴 ExportMetricsServiceRequest byte[] 조립. */
+    /**
+     * 단일 agent_id + timeUnixNano를 가진 Gauge dataPoint로 ExportMetricsServiceRequest
+     * byte[]를 조립하는 헬퍼.
+     */
     private static byte[] buildGaugePayload(String metricName, String agentId, long timeUnixNano) {
         NumberDataPoint dp = NumberDataPoint.newBuilder()
                 .addAttributes(KeyValue.newBuilder()
@@ -84,40 +73,30 @@ class HeartbeatConsumerTest {
         return ExportMetricsServiceRequest.newBuilder()
                 .addResourceMetrics(ResourceMetrics.newBuilder()
                         .addScopeMetrics(ScopeMetrics.newBuilder()
-                                .addMetrics(metric).build()).build())
-                .build().toByteArray();
-    }
-
-    private ConsumerRecord<String, byte[]> record(byte[] payload) {
-        return new ConsumerRecord<>(KafkaConfig.Topics.HEARTBEATS, 0, 0L, "key", payload);
+                                .addMetrics(metric)
+                                .build())
+                        .build())
+                .build()
+                .toByteArray();
     }
 
     // -----------------------------------------------------------------------
-    // 케이스 ①: gauge 정상 파싱 + HeartbeatLatestMap 갱신
+    // 케이스 ①: gauge 정상 파싱 — Instant 변환 회귀 포인트 직접 검증
     // -----------------------------------------------------------------------
 
     @Test
-    void parsesAgentHeartbeatGaugeAndUpdatesLatestMap() throws Exception {
-        // proto fixed64 NANOS → EXPECTED_INSTANT 변환 회귀 포인트 포함.
+    void decodesGaugeDataPointAndConvertsTimeUnixNanoToInstant() throws Exception {
+        // JSON 위상의 "1747734000000000000" string → proto 위상의 fixed64 long.
+        // 동일 long 값 → 동일 Instant가 나와야 한다.
         byte[] payload = buildGaugePayload("agent.heartbeat", AGENT_ID, NANOS);
 
-        // decoder.decode(byte[]) 경로로 직접 applyAll 호출해 정밀 검증.
-        int applied = consumer.applyAll(new HeartbeatOtlpDecoder().decode(payload));
+        List<DecodedHeartbeat> result = decoder.decode(payload);
 
-        assertThat(applied).isEqualTo(1);
-        assertThat(latestMap.find(AGENT_ID))
-                .hasValueSatisfying(s -> assertThat(s.lastSeen()).isEqualTo(EXPECTED_INSTANT));
-    }
-
-    @Test
-    void consumeUpdatesLatestMapViaProtoPayload() {
-        // end-to-end: consume() → decoder → latestMap 경로 검증.
-        byte[] payload = buildGaugePayload("agent.heartbeat", AGENT_ID, NANOS);
-
-        consumer.consume(record(payload));
-
-        assertThat(latestMap.find(AGENT_ID))
-                .hasValueSatisfying(s -> assertThat(s.lastSeen()).isEqualTo(EXPECTED_INSTANT));
+        assertThat(result).hasSize(1);
+        DecodedHeartbeat hb = result.get(0);
+        assertThat(hb.agentId()).isEqualTo(AGENT_ID);
+        // 핵심 회귀: proto fixed64 → Instant 변환이 정확해야 한다.
+        assertThat(hb.lastSeen()).isEqualTo(EXPECTED_INSTANT);
     }
 
     // -----------------------------------------------------------------------
@@ -125,13 +104,13 @@ class HeartbeatConsumerTest {
     // -----------------------------------------------------------------------
 
     @Test
-    void ignoresUnknownMetricNames() {
-        // agent.heartbeat이 아니면 latestMap에 아무것도 들어오면 안 된다.
+    void ignoresMetricWithUnknownName() throws Exception {
+        // Collector가 다른 metric을 함께 보낼 수 있다 — agent.heartbeat 아닌 것은 무시.
         byte[] payload = buildGaugePayload("process.cpu.utilization", AGENT_ID, NANOS);
 
-        consumer.consume(record(payload));
+        List<DecodedHeartbeat> result = decoder.decode(payload);
 
-        assertThat(latestMap.size()).isZero();
+        assertThat(result).isEmpty();
     }
 
     // -----------------------------------------------------------------------
@@ -139,8 +118,8 @@ class HeartbeatConsumerTest {
     // -----------------------------------------------------------------------
 
     @Test
-    void skipsDataPointWithoutAgentId() {
-        // agent_id가 없으면 dataPoint를 건너뛰어야 한다.
+    void skipsDataPointWithoutAgentIdAttribute() throws Exception {
+        // agent_id 대신 service.name만 있는 dataPoint — 건너뛰어야 한다.
         NumberDataPoint dp = NumberDataPoint.newBuilder()
                 .addAttributes(KeyValue.newBuilder()
                         .setKey("service.name")
@@ -160,29 +139,40 @@ class HeartbeatConsumerTest {
                                 .addMetrics(metric).build()).build())
                 .build().toByteArray();
 
-        consumer.consume(record(payload));
+        List<DecodedHeartbeat> result = decoder.decode(payload);
 
-        assertThat(latestMap.size()).isZero();
+        assertThat(result).isEmpty();
     }
 
     // -----------------------------------------------------------------------
-    // 케이스 ④: AgentRegistry lastSeen 갱신 (spec §3.2)
+    // 케이스 ④: timeUnixNano = 0 인 dataPoint skip (proto "미설정" 규칙)
     // -----------------------------------------------------------------------
 
     @Test
-    void updatesAgentRegistryLastSeenForKnownAgent() {
-        // 사전 등록된 Agent의 last_seen은 heartbeat에서도 갱신되어야 한다 (spec §3.2).
-        registry.register(AGENT_ID, "host-1", "linux/amd64", "0.1.0");
-        Instant registeredAt = registry.find(AGENT_ID).orElseThrow().lastSeen();
+    void skipsDataPointWithZeroTimeUnixNano() throws Exception {
+        // proto fixed64 기본값 0 → JSON 위상의 빈 문자열 skip에 대응하는 규칙.
+        NumberDataPoint dp = NumberDataPoint.newBuilder()
+                .addAttributes(KeyValue.newBuilder()
+                        .setKey("agent_id")
+                        .setValue(AnyValue.newBuilder().setStringValue(AGENT_ID).build())
+                        .build())
+                .setTimeUnixNano(0L) // 미설정
+                .build();
 
-        // 등록 직후의 last_seen보다 더 미래의 timeUnixNano로 heartbeat 발송.
-        long futureNanos = (registeredAt.getEpochSecond() + 60) * 1_000_000_000L;
-        byte[] payload = buildGaugePayload("agent.heartbeat", AGENT_ID, futureNanos);
+        Metric metric = Metric.newBuilder()
+                .setName("agent.heartbeat")
+                .setGauge(Gauge.newBuilder().addDataPoints(dp).build())
+                .build();
 
-        consumer.consume(record(payload));
+        byte[] payload = ExportMetricsServiceRequest.newBuilder()
+                .addResourceMetrics(ResourceMetrics.newBuilder()
+                        .addScopeMetrics(ScopeMetrics.newBuilder()
+                                .addMetrics(metric).build()).build())
+                .build().toByteArray();
 
-        Instant afterHeartbeat = registry.find(AGENT_ID).orElseThrow().lastSeen();
-        assertThat(afterHeartbeat).isAfter(registeredAt);
+        List<DecodedHeartbeat> result = decoder.decode(payload);
+
+        assertThat(result).isEmpty();
     }
 
     // -----------------------------------------------------------------------
@@ -190,7 +180,7 @@ class HeartbeatConsumerTest {
     // -----------------------------------------------------------------------
 
     @Test
-    void handlesMultipleDataPointsAcrossAgents() {
+    void handlesMultipleDataPointsAcrossAgents() throws Exception {
         long nanosA = 1_747_734_000_000_000_000L;
         long nanosB = 1_747_734_010_000_000_000L;
 
@@ -224,55 +214,43 @@ class HeartbeatConsumerTest {
                                 .addMetrics(metric).build()).build())
                 .build().toByteArray();
 
-        consumer.consume(record(payload));
+        List<DecodedHeartbeat> result = decoder.decode(payload);
 
-        assertThat(latestMap.snapshot()).containsKeys("agent-A", "agent-B");
-        assertThat(latestMap.size()).isEqualTo(2);
+        assertThat(result).hasSize(2);
+        assertThat(result).extracting(DecodedHeartbeat::agentId)
+                .containsExactlyInAnyOrder("agent-A", "agent-B");
+
+        // nanosA/B → Instant 변환이 각각 정확해야 한다.
+        assertThat(result).filteredOn(hb -> "agent-A".equals(hb.agentId()))
+                .first().extracting(DecodedHeartbeat::lastSeen)
+                .isEqualTo(Instant.ofEpochSecond(1_747_734_000L));
+        assertThat(result).filteredOn(hb -> "agent-B".equals(hb.agentId()))
+                .first().extracting(DecodedHeartbeat::lastSeen)
+                .isEqualTo(Instant.ofEpochSecond(1_747_734_010L));
     }
 
     // -----------------------------------------------------------------------
-    // 케이스 ⑥: null/빈 byte[] skip — 다음 메시지 처리가 막히면 안 된다
+    // 유효하지 않은 byte[] → InvalidProtocolBufferException 전파
     // -----------------------------------------------------------------------
 
     @Test
-    void consumeHandlesNullPayloadWithoutThrowing() {
-        // 깨진 메시지가 와도 다음 처리가 막히면 안 된다 (AuditConsumer와 동일 정책).
-        consumer.consume(new ConsumerRecord<>(KafkaConfig.Topics.HEARTBEATS, 0, 0L, "key", null));
-
-        assertThat(latestMap.size()).isZero();
-    }
-
-    @Test
-    void consumeHandlesEmptyPayloadWithoutThrowing() {
-        // 빈 byte[] 도 skip 처리 대상이다.
-        consumer.consume(new ConsumerRecord<>(KafkaConfig.Topics.HEARTBEATS, 0, 0L, "key", new byte[0]));
-
-        assertThat(latestMap.size()).isZero();
+    void throwsOnInvalidProtoBytes() {
+        // 디코더는 예외를 삼키지 않고 전파해야 한다(consumer가 WARN 로깅 후 진행).
+        byte[] garbage = new byte[]{0x01, 0x02, 0x03};
+        assertThatThrownBy(() -> decoder.decode(garbage))
+                .isInstanceOf(InvalidProtocolBufferException.class);
     }
 
     // -----------------------------------------------------------------------
-    // applyAll 직접 검증: DecodedHeartbeat 목록 → 스토어 반영 수 반환
+    // 빈 ExportMetricsServiceRequest → 빈 리스트 반환
     // -----------------------------------------------------------------------
 
     @Test
-    void applyAllReturnsCountOfAppliedHeartbeats() {
-        // applyAll은 적용한 dataPoint 수를 반환한다 (진단/테스트 보조 메서드).
-        List<DecodedHeartbeat> heartbeats = List.of(
-                new DecodedHeartbeat("agent-X", Instant.ofEpochSecond(1_000L)),
-                new DecodedHeartbeat("agent-Y", Instant.ofEpochSecond(2_000L))
-        );
+    void returnsEmptyListForEmptyRequest() throws Exception {
+        byte[] payload = ExportMetricsServiceRequest.newBuilder().build().toByteArray();
 
-        int applied = consumer.applyAll(heartbeats);
+        List<DecodedHeartbeat> result = decoder.decode(payload);
 
-        assertThat(applied).isEqualTo(2);
-        assertThat(latestMap.snapshot()).containsKeys("agent-X", "agent-Y");
-    }
-
-    @Test
-    void applyAllWithEmptyListReturnsZero() {
-        int applied = consumer.applyAll(List.of());
-
-        assertThat(applied).isZero();
-        assertThat(latestMap.size()).isZero();
+        assertThat(result).isEmpty();
     }
 }

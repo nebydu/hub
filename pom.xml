@@ -29,6 +29,14 @@
         <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <commons-collections4.version>4.4</commons-collections4.version>
+        <!--
+          heartbeats-topic 디코딩용 OTLP protobuf 바인딩 버전 핀 (ADR #2 B-1).
+          OTel proto 아티팩트는 1.x.x-alpha 버전 체계가 정상이며, 이 버전을 핀해
+          Collector/Agent와의 wire 정합을 통제한다. protobuf-java 4.31.0을
+          transitive 의존으로 끌어온다(별도 좌표 추가 불필요).
+          자체 .proto/protoc 생성 없음 — 표준 라이브러리 내장 proto 사용.
+        -->
+        <opentelemetry-proto.version>1.7.0-alpha</opentelemetry-proto.version>
     </properties>
 
     <dependencies>
@@ -75,6 +83,17 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-collections4</artifactId>
             <version>${commons-collections4.version}</version>
+        </dependency>
+
+        <!--
+          heartbeats-topic OTLP protobuf 디코딩 (ADR #2 / kafka-payloads.md heartbeats-topic).
+          ExportMetricsServiceRequest.parseFrom(byte[])로 OTLP MetricsData를 디코드한다.
+          protobuf-java 런타임은 이 아티팩트의 transitive 의존으로 함께 들어온다.
+        -->
+        <dependency>
+            <groupId>io.opentelemetry.proto</groupId>
+            <artifactId>opentelemetry-proto</artifactId>
+            <version>${opentelemetry-proto.version}</version>
         </dependency>
 
         <!-- 테스트 -->
