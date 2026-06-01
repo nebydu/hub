@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -35,7 +36,7 @@ import com.monitoring.hub.domain.job.JobResult;
  * <ul>
  *   <li>audit-events (typed AuditEvent consumer)</li>
  *   <li>job-results (typed JobResult consumer)</li>
- *   <li>heartbeats (raw String consumer — OTLP JSON을 직접 파싱)</li>
+ *   <li>heartbeats (raw byte[] consumer — OTLP protobuf를 디코딩, ADR #2)</li>
  *   <li>commands (typed Command producer)</li>
  * </ul>
  */
@@ -54,7 +55,7 @@ public class KafkaConfig {
         /** BE → Agent 명령. spec §5.1. 다음 단계 사용. */
         public static final String COMMANDS = "commands";
 
-        /** OTel Collector → BE heartbeat (OTLP JSON). spec §5.4. 다음 단계 사용. */
+        /** OTel Collector → BE heartbeat (OTLP protobuf, ADR #2). spec §5.4. 다음 단계 사용. */
         public static final String HEARTBEATS = "heartbeats";
 
         private Topics() {
@@ -146,30 +147,32 @@ public class KafkaConfig {
     }
 
     /**
-     * heartbeats 전용 {@link ConsumerFactory}. OTel Collector가 발행하는 OTLP JSON은
-     * 본 도메인의 typed record로 매핑하지 않고 {@link String}으로 받아
-     * {@code HeartbeatConsumer}가 직접 트리 파싱한다 (spec §5.4.2).
+     * heartbeats 전용 {@link ConsumerFactory}. OTel Collector가 발행하는 OTLP protobuf는
+     * 본 도메인의 typed record로 매핑하지 않고 {@code byte[]}로 받아
+     * {@code HeartbeatConsumer}가 {@code HeartbeatOtlpDecoder}로 디코딩한다 (ADR #2, spec §5.4.2).
      *
-     * <p>spec §2.2 envelope 헤더 규약은 heartbeats에 적용되지 않으므로
-     * {@link JsonDeserializer}의 {@code __TypeId__} 같은 메타 또한 신경 쓸 필요 없음.
+     * <p>spec §2.2 envelope 헤더 규약은 heartbeats(OTLP 위임군 예외)에 적용되지 않는다.
      */
     @Bean
-    public ConsumerFactory<String, String> heartbeatConsumerFactory(
+    public ConsumerFactory<String, byte[]> heartbeatConsumerFactory(
             AppProperties appProperties,
             KafkaProperties kafkaProperties) {
 
         Map<String, Object> props = new HashMap<>(kafkaProperties.buildConsumerProperties(null));
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, appProperties.kafka().brokers());
 
-        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), new StringDeserializer());
+        // ADR #2: payload(value)는 OTLP protobuf bytes다 → value deserializer만
+        // String → byte[](ByteArrayDeserializer)로 전환. key deserializer
+        // (StringDeserializer)·파티셔닝·키 정책은 변경하지 않는다.
+        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), new ByteArrayDeserializer());
     }
 
     /** heartbeats 전용 listener container factory. */
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, String> heartbeatListenerFactory(
-            ConsumerFactory<String, String> heartbeatConsumerFactory) {
+    public ConcurrentKafkaListenerContainerFactory<String, byte[]> heartbeatListenerFactory(
+            ConsumerFactory<String, byte[]> heartbeatConsumerFactory) {
 
-        ConcurrentKafkaListenerContainerFactory<String, String> factory =
+        ConcurrentKafkaListenerContainerFactory<String, byte[]> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(heartbeatConsumerFactory);
         return factory;
