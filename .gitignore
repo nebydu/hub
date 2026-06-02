@@ -4,7 +4,8 @@
 # Maven 산출물
 target/
 
-# IntelliJ 모듈 파일 (부모는 .idea/까지만 무시)
+# IntelliJ 프로젝트 설정 디렉터리 / 모듈 파일
+.idea/
 *.iml
 
 # Spring Initializr 헬프 파일
