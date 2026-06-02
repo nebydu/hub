@@ -1,12 +1,12 @@
 {
   "permissions": {
-    "defaultMode": "default",
     "deny": [
       "Write(/docs/**)",
       "Edit(/docs/**)",
       "Write(../monitoring-meta/**)",
       "Edit(../monitoring-meta/**)"
     ],
+    "defaultMode": "default",
     "additionalDirectories": [
       "../monitoring-meta/docs",
       "../monitoring-meta/handoff"
@@ -20,22 +20,15 @@
           {
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/git-bash.cmd",
-            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/pre-write-guard.sh"]
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/git-bash.cmd",
-            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/codex-gate.sh"]
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/pre-write-guard.sh"
+            ]
           }
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "monitoring-harness@monitoring-harness": true
   }
 }
