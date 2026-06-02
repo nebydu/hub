@@ -1,5 +1,6 @@
-# 부모 .gitignore가 .idea/, .vscode/, *.exe, .claude/, OS 파일 등을 이미 무시한다.
-# 여기서는 Maven 모듈 산출물만 추가 관리.
+# hub repo의 단일 .gitignore (별도 부모 .gitignore 없음).
+# 빌드 산출물 / IDE 설정 / 런타임 로그 / codex-gate 상태 파일을 무시한다.
+# 주의: .claude/ 는 전체를 무시하지 않는다(agents/settings/profile은 추적 대상).
 
 # Maven 산출물
 target/
