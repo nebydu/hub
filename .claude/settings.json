@@ -29,6 +29,6 @@
     ]
   },
   "enabledPlugins": {
-    "monitoring-harness@monitoring-harness": true
+    "harness@monitoring": true
   }
 }
