@@ -18,10 +18,10 @@ hub 루트의 `CLAUDE.md` / `AGENTS.md`(Claude Code ↔ Codex 이중 에이전�
 1. **통합본 v0.9** (`../monitoring-meta/docs/통합본_v0_9.md`) — 전체 제품 요구·아키텍처·모듈 경계·Phase 방향의 최상위 판단 기준
 2. **작업 spec** (`../monitoring-meta/handoff/<work-id>-hub.md`) — 이번 작업에서 hub가 구현할 구체 입력
 3. **코드** (현재 hub의 실제 동작·제약의 사실)
-4. **데모 spec v0.2.1** (`docs/monitoring-demo-message-spec-v0.2.1.md`) — Phase 0 회귀 방지 가드. 통합본과 충돌 시 현재 Phase에서 어떻게 적용할지 판단
+4. **데모 spec v0.2.1** (`../monitoring-meta/docs/phase0-snapshot/monitoring-demo-message-spec-v0.2.1.md`) — Phase 0 회귀 방지 가드. 통합본과 충돌 시 현재 Phase에서 어떻게 적용할지 판단
 5. **envelope + kafka-payloads** (`../monitoring-meta/docs/`) — 메시징 세부 규약(Phase 1+ 도달 목표)
 
-> **근거(provenance)**: 셋업 원 브리프(monitoring-meta `HANDOFF.md` §3 "정본 문서 위치와 위상")의 초기 우선순위는 "코드 → 데모 spec v0.2.1 → 통합본"이었으나, 이 repo가 커밋 `9b7288f`(2026-05-29)로 통합본 중심 재조정을 단행했다. 형제 repo `script-agent`도 폴리레포 오케스트레이션 일관성을 위해 같은 순서로 정렬했다 — **사용자 명시 승인(2026-05-29)**. 원 브리프 acceptance 기준을 의도적으로 supersede한 것이며, 데모 spec v0.2.1은 버린 것이 아니라 #4 Phase 0 회귀 가드로 유지된다.
+> **근거(provenance)**: 셋업 원 브리프의 초기 우선순위는 "코드 → 데모 spec v0.2.1 → 통합본"이었으나, 이 repo가 커밋 `9b7288f`(2026-05-29)로 통합본 중심 재조정을 단행했다. 형제 repo `script-agent`도 폴리레포 오케스트레이션 일관성을 위해 같은 순서로 정렬했다 — **사용자 명시 승인(2026-05-29)**. 원 브리프 acceptance 기준을 의도적으로 supersede한 것이며, 데모 spec v0.2.1은 버린 것이 아니라 #4 Phase 0 회귀 가드로 유지된다.
 
 ## 3. 작업 입력 형식
 - 작업 spec은 **`../monitoring-meta/handoff/<work-id>-hub.md`** 한 곳에서만 받는다.
@@ -30,9 +30,8 @@ hub 루트의 `CLAUDE.md` / `AGENTS.md`(Claude Code ↔ Codex 이중 에이전�
 
 ## 4. 금지 사항
 - **단계 점프 금지**: analyzer 산출물 없이 implementer로 가는 등 표준 호출 순서를 건너뛰지 않는다.
-- **monitoring-meta는 read-only**: `../monitoring-meta/`의 HANDOFF.md, 통합본 v0.9, envelope.md, kafka-payloads.md를 hub repo에서 직접 수정하지 않는다.
+- **monitoring-meta는 read-only**: `../monitoring-meta/`의 통합본 v0.9, envelope.md, kafka-payloads.md를 hub repo에서 직접 수정하지 않는다.
 - **hub AGENTS.md 자동 갱신 금지**: 셋업 이후 사람이 수동 처리한다.
-- **HANDOFF.md §5 체크박스 자동 갱신 금지**: 사람이 수동 처리한다.
 
 ## 5. 표준 호출 순서와 재시도 한도
 ```

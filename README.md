@@ -40,7 +40,7 @@ spec v0.2.1의 데모 범위(§0 위상 / §1~§5 토픽·도메인·페이로�
 Schema Registry(#1), Heartbeat protobuf(#2), 화면 LEGO+WebSocket(#8),
 SQL_JOB(#9), Alert/Incident, 시계열 메트릭 등.
 
-자세한 메시지 스키마는 [`docs/monitoring-demo-message-spec-v0.2.1.md`](docs/monitoring-demo-message-spec-v0.2.1.md) 참조.
+자세한 메시지 스키마는 [`monitoring-demo-message-spec-v0.2.1.md`](../monitoring-meta/docs/phase0-snapshot/monitoring-demo-message-spec-v0.2.1.md) 참조.
 
 ## 사전 조건
 

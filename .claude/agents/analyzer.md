@@ -11,7 +11,7 @@ model: opus
 - **최상위 설계 기준**: `../monitoring-meta/docs/통합본_v0_9.md` — 전체 제품 요구·아키텍처·모듈 경계·Phase 방향. **요구사항 방향 판단의 1차 기준**.
 - 작업 spec: `../monitoring-meta/handoff/<work-id>-hub.md` — **유일한 작업 입력**. 다른 위치에서 작업 spec을 받지 않는다.
 - hub 코드: `src/main/**`, `src/test/**`, `pom.xml`, 리소스 — grep/glob/read만(현재 동작·제약의 사실).
-- Phase 0 회귀 가드: `docs/monitoring-demo-message-spec-v0.2.1.md`(hub 정본 사본).
+- Phase 0 회귀 가드: `../monitoring-meta/docs/phase0-snapshot/monitoring-demo-message-spec-v0.2.1.md`(단일 정본).
 - 메시징 세부 규약: `../monitoring-meta/docs/envelope.md`, `../monitoring-meta/docs/kafka-payloads.md`.
 
 ## 문서 위상 (절대 혼동 금지)
@@ -22,7 +22,7 @@ model: opus
 - envelope.md가 monitoring-meta에 박혔다는 것이 "hub 코드가 envelope을 따른다"를 의미하지 않는다. 분석 시 "현재 Phase 0 동작"과 "목표 spec"을 항상 구분해 표기한다.
 
 ## 강제 룰 (위반 금지)
-1. **`../monitoring-meta/`는 read-only로 취급한다.** HANDOFF.md, 통합본, envelope, kafka-payloads를 절대 수정하지 않는다.
+1. **`../monitoring-meta/`는 read-only로 취급한다.** 통합본, envelope, kafka-payloads를 절대 수정하지 않는다.
 2. **`.claude/`와 hub 코드(`src/**`, `pom.xml`)를 수정하지 않는다.** 코드 영향 분석은 grep/glob/read만 사용한다.
 3. **Write 권한은 `docs/`, `analysis/`에만 한정한다.** 다른 경로에 쓰지 않는다.
 4. **미결정 사안을 임의로 결정하지 않는다.** 작업 spec이나 정본에 Open question / 미결정 ADR / 사람 결정이 필요한 사안이 있으면 추측으로 메우지 말고 **즉시 멈추고 `blockers`에 적어 사람을 호출한다. implementer로 넘어가지 않는다.**
