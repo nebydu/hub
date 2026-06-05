@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import com.monitoring.hub.config.KafkaConfig;
 import com.monitoring.hub.domain.job.JobResult;
+import com.monitoring.hub.messaging.EnvelopeHeaders;
 import com.monitoring.hub.store.JobResultRingBuffer;
 
 /**
@@ -44,6 +45,10 @@ public class JobResultConsumer {
             groupId = "hub-job-result-consumer"
     )
     public void consume(ConsumerRecord<String, JobResult> record) {
+        // envelope §2.3 x-source 가드: 헤더를 읽되 부재/미지값이어도 처리는 그대로
+        // 계속한다(미지값에 안 깨지는 것이 의도된 동작). 미지값일 때만 debug 로깅.
+        EnvelopeHeaders.inspectSource(record.headers(), KafkaConfig.Topics.JOB_RESULTS);
+
         JobResult result = record.value();
         if (result == null) {
             log.warn("skipping null job-result payload at offset={}", record.offset());

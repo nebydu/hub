@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import com.monitoring.hub.config.KafkaConfig;
 import com.monitoring.hub.domain.command.Command;
+import com.monitoring.hub.messaging.EnvelopeHeaders;
 import com.monitoring.hub.store.CommandRingBuffer;
 
 /**
@@ -38,10 +39,12 @@ public class CommandPublisher {
     /** spec §2.2 — 발행자 식별자. BE는 monitoring-be로 고정. */
     private static final String SOURCE = "monitoring-be";
 
-    static final String HEADER_MESSAGE_ID = "x-message-id";
-    static final String HEADER_MESSAGE_VERSION = "x-message-version";
-    static final String HEADER_SOURCE = "x-source";
-    static final String HEADER_TRACE_ID = "x-trace-id";
+    // 헤더 키 문자열의 단일 진실 지점은 EnvelopeHeaders. 여기서는 기존 참조
+    // (CommandPublisherTest 포함) 호환을 위해 별칭으로 위임만 한다 — 값 불변.
+    static final String HEADER_MESSAGE_ID = EnvelopeHeaders.X_MESSAGE_ID;
+    static final String HEADER_MESSAGE_VERSION = EnvelopeHeaders.X_MESSAGE_VERSION;
+    static final String HEADER_SOURCE = EnvelopeHeaders.X_SOURCE;
+    static final String HEADER_TRACE_ID = EnvelopeHeaders.X_TRACE_ID;
 
     private final KafkaTemplate<String, Command> kafkaTemplate;
     private final CommandRingBuffer ringBuffer;
