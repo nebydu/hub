@@ -12,7 +12,7 @@ import org.springframework.validation.annotation.Validated;
  *
  * <p>prefix는 {@code hub}. {@code application.yml}의 {@code hub.*} 블록을 매핑한다.
  * Spring Kafka 자체 설정({@code spring.kafka.*})은 Spring Boot 자동 구성이 별도로
- * 매핑하므로 여기에는 두지 않는다. brokers만 도메인 설정으로 노출해 추후 단계에서
+ * 매핑하므로 여기에는 두지 않는다. brokers만 도메인 설정으로 노출해
  * KafkaConfig가 ConsumerFactory를 만들 때 단일 진실로 활용한다.
  *
  * <p>각 도메인(audit/job/agent)의 ring buffer 또는 latest map 용량과 heartbeat

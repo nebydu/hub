@@ -15,7 +15,7 @@ import java.time.Instant;
  * @param os            AGENT_STARTED metadata에서 추출 (예: {@code linux/amd64})
  * @param agentVersion  AGENT_STARTED metadata에서 추출
  * @param lastSeen      마지막으로 살아있음이 확인된 시각. AGENT_STARTED 수신
- *                      시점에 갱신, 추후 단계에서 heartbeat 수신 시에도 갱신
+ *                      시점과 heartbeat 수신 시점에 갱신
  * @param state         현재 상태 — ONLINE / OFFLINE
  */
 public record AgentInfo(

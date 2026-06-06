@@ -49,13 +49,13 @@ public class KafkaConfig {
         /** Agent → BE 감사 이벤트 토픽. spec §5.3. */
         public static final String AUDIT_EVENTS = "audit-topic";
 
-        /** Agent → BE Job 실행 결과. spec §5.2. 다음 단계 사용. */
+        /** Agent → BE Job 실행 결과. spec §5.2. */
         public static final String JOB_RESULTS = "job-results";
 
-        /** BE → Agent 명령. spec §5.1. 다음 단계 사용. */
+        /** BE → Agent 명령. spec §5.1. */
         public static final String COMMANDS = "command-topic";
 
-        /** OTel Collector → BE heartbeat (OTLP protobuf, ADR #2). spec §5.4. 다음 단계 사용. */
+        /** OTel Collector → BE heartbeat (OTLP protobuf, ADR #2). spec §5.4. */
         public static final String HEARTBEATS = "heartbeats-topic";
 
         private Topics() {

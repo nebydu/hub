@@ -11,8 +11,8 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
  * 아니라 BE Quartz의 commands 발행까지 Agent와의 양방향 통신 중심 역할을 한다.
  * 추후 모듈 분할 시 hub-ingest / hub-scheduler / hub-api 등으로 확장될 prefix.
  *
- * <p>1단계 골격은 audit-topic 한 토픽만 소비한다. command-topic / job-results /
- * heartbeats-topic 경로는 추후 단계에서 추가된다.
+ * <p>현재 audit-topic / job-results / heartbeats-topic 세 토픽을 소비하고,
+ * command-topic으로 BE 명령을 발행한다.
  */
 @SpringBootApplication
 @ConfigurationPropertiesScan(basePackages = "com.monitoring.hub.config")
