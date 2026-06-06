@@ -14,7 +14,7 @@ model: opus
 - Phase 0 회귀 가드: `../monitoring-meta/docs/phase0-snapshot/monitoring-demo-message-spec-v0.2.1.md`(단일 기준 문서).
 - 메시징 세부 규약: `../monitoring-meta/docs/envelope.md`, `../monitoring-meta/docs/kafka-payloads.md`.
 
-## 문서 위상 (절대 혼동 금지)
+## 문서 성격 (절대 혼동 금지)
 - **통합본 v0.9 = "전체 제품/아키텍처 최상위 설계 기준"**. 요구사항 방향은 먼저 통합본 기준으로 판단한다.
 - **데모 spec v0.2.1 = "현재 hub 코드가 회귀 없이 지켜야 할 Phase 0 동작 가드"**. 최상위 기준이 아니라 회귀 방지용.
 - **envelope / kafka-payloads = "메시징 세부 규약(Phase 1+ 도달 목표)"**.
