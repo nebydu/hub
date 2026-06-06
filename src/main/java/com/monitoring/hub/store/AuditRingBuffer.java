@@ -10,7 +10,7 @@ import com.monitoring.hub.config.AppProperties;
 import com.monitoring.hub.domain.audit.AuditEvent;
 
 /**
- * audit-events 토픽 in-memory ring buffer. spec §4.3.
+ * audit-topic in-memory ring buffer. spec §4.3.
  *
  * <p>{@link CircularFifoQueue}는 capacity 초과 시 자동으로 가장 오래된 항목을
  * evict한다. Spring Kafka consumer 스레드(현재는 1개, 추후 다중 가능)와 향후

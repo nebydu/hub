@@ -37,7 +37,7 @@ public record AppProperties(
 
     /** Audit 도메인 설정. */
     public record Audit(
-            /** audit-events ring buffer 용량. spec §4.3 기본 200. */
+            /** audit-topic ring buffer 용량. spec §4.3 기본 200. */
             @Positive int ringBufferSize
     ) {
     }
@@ -51,7 +51,7 @@ public record AppProperties(
 
     /** Command 도메인 설정 (BE → Agent 발행 이력). */
     public record Command(
-            /** commands ring buffer 용량. spec §4.3 기본 50. */
+            /** command-topic ring buffer 용량. spec §4.3 기본 50. */
             @Positive int ringBufferSize
     ) {
     }

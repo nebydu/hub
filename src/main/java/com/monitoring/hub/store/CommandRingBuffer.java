@@ -10,7 +10,7 @@ import com.monitoring.hub.config.AppProperties;
 import com.monitoring.hub.domain.command.Command;
 
 /**
- * BE가 발행한 commands의 in-memory ring buffer. spec §4.3.
+ * BE가 발행한 command-topic의 in-memory ring buffer. spec §4.3.
  *
  * <p>{@link com.monitoring.hub.producer.CommandPublisher}가 Kafka send 시점에
  * 함께 적재 — UI에서 발행 이력을 조회하기 위한 자리 (Thymeleaf 화면이 추가되는

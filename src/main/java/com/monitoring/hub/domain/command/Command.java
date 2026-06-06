@@ -6,7 +6,7 @@ import java.util.Map;
 import com.monitoring.hub.domain.job.JobType;
 
 /**
- * commands 토픽 페이로드. spec §5.1.3 envelope.
+ * command-topic 페이로드. spec §5.1.3 envelope.
  *
  * <p>BE → Agent 방향. {@code target_agent_id}가 자기 것이 아닌 Agent는 무시한다.
  *

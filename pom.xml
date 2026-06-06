@@ -3,7 +3,7 @@
   hub — 모니터링 솔루션 데모 BE (walking skeleton).
 
   Java 21 / Spring Boot 3.3.x / Maven.
-  1단계는 audit-events 토픽 한 종 소비 + in-memory Ring Buffer + AgentRegistry.
+  1단계는 audit-topic 한 종 소비 + in-memory Ring Buffer + AgentRegistry.
   Quartz / Thymeleaf 의존성은 다음 단계에서 추가한다.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
@@ -62,7 +62,7 @@
         </dependency>
 
         <!--
-          Quartz — commands 토픽 발행을 트리거하는 스케줄러 (spec §5.1, ADR #17).
+          Quartz — command-topic 발행을 트리거하는 스케줄러 (spec §5.1, ADR #17).
           Spring Boot 자동구성이 SchedulerFactoryBean + SpringBeanJobFactory를 등록해
           Quartz Job 안에서 Spring 빈을 autowire할 수 있게 한다.
           데모는 in-memory JobStore (RAMJobStore). 영속화는 본개발 영역.

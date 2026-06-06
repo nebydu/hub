@@ -19,7 +19,7 @@ import com.monitoring.hub.domain.heartbeat.HeartbeatState;
  * <p>같은 agent_id로 들어온 새 heartbeat이 더 오래된 timestamp일 가능성도
  * 있으므로, {@link #upsert(HeartbeatState)}는 항상 새 값으로 덮어쓰지 않고
  * {@code lastSeen}이 더 최신일 때만 갱신한다 — Kafka 파티션 안에서는 순서가
- * 보장되지만 heartbeats 토픽은 OTel Collector가 발행하므로 Agent별 partition 분배
+ * 보장되지만 heartbeats-topic은 OTel Collector가 발행하므로 Agent별 partition 분배
  * 보장이 없다 (spec §2.3).
  *
  * <p>thread-safe. {@link ConcurrentHashMap#merge}로 atomic upsert.

@@ -16,7 +16,7 @@ import com.monitoring.hub.messaging.EnvelopeHeaders;
 import com.monitoring.hub.store.CommandRingBuffer;
 
 /**
- * commands 토픽 publisher. spec §5.1.
+ * command-topic publisher. spec §5.1.
  *
  * <p>책임:
  * <ul>
@@ -57,7 +57,7 @@ public class CommandPublisher {
     }
 
     /**
-     * {@link Command}를 commands 토픽에 발행한다.
+     * {@link Command}를 command-topic에 발행한다.
      *
      * <p>{@code traceId}는 OTel 통합 시 propagation을 위한 자리 — null이면 헤더
      * 추가를 생략한다. 데모는 호출 측에서 null로 둔다.

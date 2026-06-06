@@ -15,7 +15,7 @@ import com.monitoring.hub.store.AgentRegistry;
 import com.monitoring.hub.store.AuditRingBuffer;
 
 /**
- * audit-events 토픽 consumer. spec §5.3 / §3.2.
+ * audit-topic consumer. spec §5.3 / §3.2.
  *
  * <p>책임:
  * <ul>

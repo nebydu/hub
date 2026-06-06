@@ -25,7 +25,7 @@ import com.monitoring.hub.domain.job.JobStatus;
 import com.monitoring.hub.domain.job.JobType;
 
 /**
- * {@link KafkaConfig}의 audit-events / job-results 전용 ConsumerFactory가
+ * {@link KafkaConfig}의 audit-topic / job-results 전용 ConsumerFactory가
  * 글로벌 {@link ObjectMapper}(snake_case 정책 + JavaTimeModule)를 사용해
  * {@link Deserializer}를 구성하는지 검증한다.
  *

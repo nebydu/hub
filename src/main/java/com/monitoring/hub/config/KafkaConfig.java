@@ -34,10 +34,10 @@ import com.monitoring.hub.domain.job.JobResult;
  *
  * <p>현재 정의된 토픽:
  * <ul>
- *   <li>audit-events (typed AuditEvent consumer)</li>
+ *   <li>audit-topic (typed AuditEvent consumer)</li>
  *   <li>job-results (typed JobResult consumer)</li>
- *   <li>heartbeats (raw byte[] consumer — OTLP protobuf를 디코딩, ADR #2)</li>
- *   <li>commands (typed Command producer)</li>
+ *   <li>heartbeats-topic (raw byte[] consumer — OTLP protobuf를 디코딩, ADR #2)</li>
+ *   <li>command-topic (typed Command producer)</li>
  * </ul>
  */
 @Configuration
@@ -47,23 +47,23 @@ public class KafkaConfig {
     public static final class Topics {
 
         /** Agent → BE 감사 이벤트 토픽. spec §5.3. */
-        public static final String AUDIT_EVENTS = "audit-events";
+        public static final String AUDIT_EVENTS = "audit-topic";
 
         /** Agent → BE Job 실행 결과. spec §5.2. 다음 단계 사용. */
         public static final String JOB_RESULTS = "job-results";
 
         /** BE → Agent 명령. spec §5.1. 다음 단계 사용. */
-        public static final String COMMANDS = "commands";
+        public static final String COMMANDS = "command-topic";
 
         /** OTel Collector → BE heartbeat (OTLP protobuf, ADR #2). spec §5.4. 다음 단계 사용. */
-        public static final String HEARTBEATS = "heartbeats";
+        public static final String HEARTBEATS = "heartbeats-topic";
 
         private Topics() {
         }
     }
 
     /**
-     * audit-events 전용 {@link ConsumerFactory}.
+     * audit-topic 전용 {@link ConsumerFactory}.
      *
      * <p>{@link JsonDeserializer}를 직접 인스턴스화해 {@code ignoreTypeHeaders()}를
      * 명시한다 — script-agent는 {@code __TypeId__} 헤더를 발행하지 않으므로
@@ -96,7 +96,7 @@ public class KafkaConfig {
     }
 
     /**
-     * audit-events 전용 listener container factory. {@code @KafkaListener}의
+     * audit-topic 전용 listener container factory. {@code @KafkaListener}의
      * {@code containerFactory} 속성으로 참조된다.
      */
     @Bean
@@ -147,11 +147,11 @@ public class KafkaConfig {
     }
 
     /**
-     * heartbeats 전용 {@link ConsumerFactory}. OTel Collector가 발행하는 OTLP protobuf는
+     * heartbeats-topic 전용 {@link ConsumerFactory}. OTel Collector가 발행하는 OTLP protobuf는
      * 본 도메인의 typed record로 매핑하지 않고 {@code byte[]}로 받아
      * {@code HeartbeatConsumer}가 {@code HeartbeatOtlpDecoder}로 디코딩한다 (ADR #2, spec §5.4.2).
      *
-     * <p>spec §2.2 envelope 헤더 규약은 heartbeats(OTLP 위임군 예외)에 적용되지 않는다.
+     * <p>spec §2.2 envelope 헤더 규약은 heartbeats-topic(OTLP 위임군 예외)에 적용되지 않는다.
      */
     @Bean
     public ConsumerFactory<String, byte[]> heartbeatConsumerFactory(
@@ -167,7 +167,7 @@ public class KafkaConfig {
         return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), new ByteArrayDeserializer());
     }
 
-    /** heartbeats 전용 listener container factory. */
+    /** heartbeats-topic 전용 listener container factory. */
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, byte[]> heartbeatListenerFactory(
             ConsumerFactory<String, byte[]> heartbeatConsumerFactory) {
@@ -179,7 +179,7 @@ public class KafkaConfig {
     }
 
     /**
-     * commands 토픽 전용 {@link ProducerFactory}. key는 spec §2.3에 따라
+     * command-topic 전용 {@link ProducerFactory}. key는 spec §2.3에 따라
      * {@code target_agent_id}(String). value는 {@link Command}를 글로벌
      * {@link ObjectMapper}(snake_case + JavaTimeModule)로 직렬화.
      *
@@ -203,7 +203,7 @@ public class KafkaConfig {
     }
 
     /**
-     * commands 전용 {@link KafkaTemplate}. {@link com.monitoring.hub.producer.CommandPublisher}가
+     * command-topic 전용 {@link KafkaTemplate}. {@link com.monitoring.hub.producer.CommandPublisher}가
      * 사용한다.
      */
     @Bean

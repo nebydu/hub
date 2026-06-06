@@ -14,7 +14,7 @@ import io.opentelemetry.proto.metrics.v1.ResourceMetrics;
 import io.opentelemetry.proto.metrics.v1.ScopeMetrics;
 
 /**
- * heartbeats 토픽의 OTLP MetricsData protobuf(byte[])를 디코드해 도메인 추출값
+ * heartbeats-topic의 OTLP MetricsData protobuf(byte[])를 디코드해 도메인 추출값
  * ({@code agent_id}, last_seen)을 뽑아내는 순수 변환기. spec §5.4 / ADR #2(B-1).
  *
  * <p>OTel Java 표준 라이브러리({@code io.opentelemetry.proto})에 내장된 proto 바인딩을

@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * audit-events 토픽 페이로드. spec §5.3.4 필드 정의 그대로.
+ * audit-topic 페이로드. spec §5.3.4 필드 정의 그대로.
  *
  * <p>필드는 Java camelCase로 두고, Kafka 페이로드의 snake_case와의 매핑은
  * Jackson 전역 정책({@code spring.jackson.property-naming-strategy=SNAKE_CASE})으로

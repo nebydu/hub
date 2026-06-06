@@ -46,7 +46,7 @@ import com.monitoring.hub.store.AuditRingBuffer;
  */
 class AuditConsumerTest {
 
-    private static final String TOPIC = "audit-events";
+    private static final String TOPIC = "audit-topic";
 
     private AuditRingBuffer buffer;
     private AgentRegistry registry;

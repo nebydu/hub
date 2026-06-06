@@ -10,12 +10,12 @@ spec v0.2.1의 데모 범위(§0 위상 / §1~§5 토픽·도메인·페이로�
 ## 데모 BE 전체 범위
 
 - **수신 측 (Agent → BE)** 세 토픽 처리:
-  - `audit-events` — AGENT_STARTED → AgentRegistry 등록, AGENT_STOPPED → OFFLINE 마킹,
+  - `audit-topic` — AGENT_STARTED → AgentRegistry 등록, AGENT_STOPPED → OFFLINE 마킹,
     JOB_EXECUTED → audit ring buffer 적재
   - `job-results` — JobResult(SCRIPT_JOB / LOG_JOB) ring buffer 적재
-  - `heartbeats` — OTLP protobuf 디코드 (spec §5.4.2 / ADR #2), HeartbeatLatestMap 갱신 +
+  - `heartbeats-topic` — OTLP protobuf 디코드 (spec §5.4.2 / ADR #2), HeartbeatLatestMap 갱신 +
     AgentRegistry.lastSeen 갱신
-- **송신 측 (BE → Agent)**: Quartz 스케줄러 + `commands` producer
+- **송신 측 (BE → Agent)**: Quartz 스케줄러 + `command-topic` producer
   - cron 트리거마다 `valid_until` = "다음 트리거 예정 시각의 90% 지점" 계산 (§5.1.3)
   - Trigger misfire = `MISFIRE_INSTRUCTION_DO_NOTHING` (§5.1 + ADR #17)
   - spec §2.2 envelope 헤더 4종(x-message-id/version/source/trace-id) 첨부
@@ -53,7 +53,7 @@ SQL_JOB(#9), Alert/Incident, 시계열 메트릭 등.
   docker compose -f ../infra/docker-compose.yml up -d
   ```
 
-  토픽(`commands`, `job-results`, `audit-events`, `heartbeats`)은 `kafka-init`
+  토픽(`command-topic`, `job-results`, `audit-topic`, `heartbeats-topic`)은 `kafka-init`
   one-shot 컨테이너가 자동 생성한다.
 
 ## 빌드
@@ -88,9 +88,9 @@ mvn spring-boot:run
 
 | 설정 | 기본값 | spec 출처 |
 |---|---|---|
-| `hub.audit.ring-buffer-size`   | 200 | §4.3 audit-events ring |
+| `hub.audit.ring-buffer-size`   | 200 | §4.3 audit-topic ring |
 | `hub.job.ring-buffer-size`     | 100 | §4.3 job-results ring |
-| `hub.command.ring-buffer-size` |  50 | §4.3 commands ring |
+| `hub.command.ring-buffer-size` |  50 | §4.3 command-topic ring |
 | `hub.agent.heartbeat-timeout-seconds` | 30 | §3.2 OFFLINE 판정 기준값 |
 
 ## 종단 검증 시나리오
@@ -164,7 +164,7 @@ com.monitoring.hub
 │   ├── audit                 # AuditEvent + Actor/Target + enum
 │   ├── job                   # JobResult + ScriptResult/LogResult + JobType/JobStatus
 │   │                         # + JobDefinition + ScheduleDefinition
-│   ├── command               # Command (commands 토픽 페이로드)
+│   ├── command               # Command (command-topic 페이로드)
 │   ├── heartbeat             # HeartbeatState
 │   └── agent                 # AgentInfo + AgentState
 ├── store                     # AuditRingBuffer, JobResultRingBuffer, CommandRingBuffer,

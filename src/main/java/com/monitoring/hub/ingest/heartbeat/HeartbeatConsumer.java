@@ -15,7 +15,7 @@ import com.monitoring.hub.store.AgentRegistry;
 import com.monitoring.hub.store.HeartbeatLatestMap;
 
 /**
- * heartbeats 토픽 consumer. spec §5.4 / ADR #2.
+ * heartbeats-topic consumer. spec §5.4 / ADR #2.
  *
  * <p>OTel Collector가 {@code otlp_proto} exporter로 발행한 OTLP MetricsData
  * protobuf(byte[])를 {@link HeartbeatOtlpDecoder}로 디코드해 agent_id와 last_seen을

@@ -1,7 +1,7 @@
 package com.monitoring.hub.domain.audit;
 
 /**
- * audit-events 토픽의 action 종류. spec §5.3.
+ * audit-topic의 action 종류. spec §5.3.
  *
  * <p>데모 단계 audit 액션은 다음 세 가지로 한정된다:
  * <ul>

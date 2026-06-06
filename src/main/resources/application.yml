@@ -35,13 +35,13 @@ hub:
     # 환경변수 HUB_KAFKA_BOOTSTRAP으로 override 가능.
     brokers: ${HUB_KAFKA_BOOTSTRAP:localhost:9092}
   audit:
-    # spec §4.3 audit-events ring buffer 크기.
+    # spec §4.3 audit-topic ring buffer 크기.
     ring-buffer-size: 200
   job:
     # spec §4.3 job-results ring buffer 크기.
     ring-buffer-size: 100
   command:
-    # spec §4.3 commands ring buffer 크기 (BE 발행 이력).
+    # spec §4.3 command-topic ring buffer 크기 (BE 발행 이력).
     ring-buffer-size: 50
   agent:
     # §3.2 OFFLINE 판정 기준값. heartbeat consumer는 구현됐으나(HeartbeatConsumer),
