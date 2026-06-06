@@ -26,7 +26,7 @@ hub 루트의 `CLAUDE.md` / `AGENTS.md`(Claude Code ↔ Codex 이중 에이전�
 ## 3. 작업 입력 형식
 - 작업 spec은 **`../monitoring-meta/handoff/<work-id>-hub.md`** 한 곳에서만 받는다.
 - 다른 위치(채팅 임의 지시, 다른 디렉터리 파일)에서 작업 spec을 받아 파이프라인을 시작하지 않는다.
-- **work-id 바인딩 계약**: 파이프라인 시작 시 `<work-id>`를 **명시적으로 확정**하고, analyzer → implementer → tester → reviewer/spec-guardian 모든 호출에 **동일한 work-id를 전달**한다. work-id가 불명확하면 대화 맥락으로 추론하지 말고 멈춰 사람에게 확인한다. (Stop hook `codex-gate.sh`는 git diff 기반 경량 게이트라 work-id를 받지 않으며 handoff 정합성을 검사하지 않는다 — handoff 검사는 analyzer/spec-guardian 책임.)
+- **work-id 바인딩 계약**: 파이프라인 시작 시 `<work-id>`를 **명시적으로 확정**하고, analyzer → implementer → tester → reviewer/spec-guardian 모든 호출에 **동일한 work-id를 전달**한다. work-id가 불명확하면 대화 맥락으로 추론하지 말고 멈춰 사람에게 확인한다. (Stop hook `codex-gate.sh`는 git diff 기반 경량 게이트라 work-id를 받지 않으며 handoff 일관성을 검사하지 않는다 — handoff 검사는 analyzer/spec-guardian 책임.)
 
 ## 4. 금지 사항
 - **단계 점프 금지**: analyzer 산출물 없이 implementer로 가는 등 표준 호출 순서를 건너뛰지 않는다.
