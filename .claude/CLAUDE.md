@@ -7,10 +7,10 @@ hub 루트의 `CLAUDE.md` / `AGENTS.md`(Claude Code ↔ Codex 이중 에이전�
 - 답변 / 문서 / 주석은 **한국어**.
 - 변수 / 함수 / 클래스 / 파일명 등 식별자는 **영어**(Java 표준 컨벤션).
 
-## 1. 위상 구분 경고 (가장 중요)
-- **envelope spec(`../monitoring-meta/docs/envelope.md`)이 monitoring-meta에 박혔지만, hub 코드는 여전히 Phase 0 데모 spec(v0.2.1) 위상에 있다.**
-- "envelope.md가 정의됐다 ≠ hub 코드가 envelope을 따른다." 이 자동화는 **이 위상 차이를 인지한 채로** 작동한다.
-- envelope 헤더 발행(x-message-id/x-message-version/x-source/x-trace-id)은 Phase 0 spec v0.2.1에 이미 포함된 동작이므로 정상이다. 반면 envelope.md의 Phase 1 consumer측 동작(x-message-id 중복 검사, x-trace-id trace 복원 등)이 hub에 없는 것도 **Phase 0 위상에서는 정상**이며 위반이 아니다.
+## 1. 단계 구분 경고 (가장 중요)
+- **envelope spec(`../monitoring-meta/docs/envelope.md`)이 monitoring-meta에 박혔지만, hub 코드는 여전히 Phase 0 데모 spec(v0.2.1) 단계에 있다.**
+- "envelope.md가 정의됐다 ≠ hub 코드가 envelope을 따른다." 이 자동화는 **이 단계 차이를 인지한 채로** 작동한다.
+- envelope 헤더 발행(x-message-id/x-message-version/x-source/x-trace-id)은 Phase 0 spec v0.2.1에 이미 포함된 동작이므로 정상이다. 반면 envelope.md의 Phase 1 consumer측 동작(x-message-id 중복 검사, x-trace-id trace 복원 등)이 hub에 없는 것도 **Phase 0 단계에서는 정상**이며 위반이 아니다.
 - **운영 원칙**: "통합본 우선 + Phase 분류 + 데모 회귀 방지". 통합본 v0.9를 방향 판단의 최상위 기준으로 두되, 통합본의 Phase 1+ 목표를 현재 Phase 0 코드에 무조건 강제하지 않는다(불필요한 fail 방지). 작업마다 Phase 0 유지인지 Phase 1+ 선반영인지 먼저 분류한다.
 
 ## 2. ground truth 우선순위
@@ -61,7 +61,7 @@ analyzer → implementer → tester → (병렬) reviewer + spec-guardian → (�
 | implementer | `src/main/**`, `src/test/**`, `pom.xml`, 리소스 | 코드 구현, 재시도 3회 한도 |
 | tester | `src/test/**`만 | 회귀 1차 책임, 프로덕션 코드 수정 금지 |
 | reviewer | 없음 | 모듈 경계(§7.2 β) critical / 강결합 warning, 보고서만 |
-| spec-guardian | 없음 | 위상 분류 + envelope 헤더 규약, 보고서만 |
+| spec-guardian | 없음 | 단계 분류 + envelope 헤더 규약, 보고서만 |
 | refactorer | `src/main/**`, `src/test/**` | 행위 보존 리팩터링, reviewer 권고 시에만 |
 
 ## 8. Stop hook (Codex 게이트)
