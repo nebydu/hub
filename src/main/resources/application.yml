@@ -44,5 +44,7 @@ hub:
     # spec §4.3 commands ring buffer 크기 (BE 발행 이력).
     ring-buffer-size: 50
   agent:
-    # heartbeat 경로가 추가되는 다음 단계에서 사용. 1단계는 값만 보관.
+    # §3.2 OFFLINE 판정 기준값. heartbeat consumer는 구현됐으나(HeartbeatConsumer),
+    # 이 timeout 기반 자동 OFFLINE 전환은 아직 없음 — 현재는 UI 노출용으로만 보관.
+    # timeout 기반 상태 전환/Alert는 Phase 1 Agent State 작업 영역.
     heartbeat-timeout-seconds: 30

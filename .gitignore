@@ -15,6 +15,9 @@ HELP.md
 # 애플리케이션 런타임 로그
 *.log
 
+# analyzer sub-agent 산출물 (로컬 분석물, 추적 제외 — .claude 파이프라인 §7)
+analysis/
+
 # codex-gate Stop hook 상태 파일 (런타임 생성, 추적 제외)
 .claude/.codex-gate-state
 .claude/codex-gate.log

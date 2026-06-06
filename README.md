@@ -13,7 +13,7 @@ spec v0.2.1의 데모 범위(§0 위상 / §1~§5 토픽·도메인·페이로�
   - `audit-events` — AGENT_STARTED → AgentRegistry 등록, AGENT_STOPPED → OFFLINE 마킹,
     JOB_EXECUTED → audit ring buffer 적재
   - `job-results` — JobResult(SCRIPT_JOB / LOG_JOB) ring buffer 적재
-  - `heartbeats` — OTLP JSON 파싱 (spec §5.4.2), HeartbeatLatestMap 갱신 +
+  - `heartbeats` — OTLP protobuf 디코드 (spec §5.4.2 / ADR #2), HeartbeatLatestMap 갱신 +
     AgentRegistry.lastSeen 갱신
 - **송신 측 (BE → Agent)**: Quartz 스케줄러 + `commands` producer
   - cron 트리거마다 `valid_until` = "다음 트리거 예정 시각의 90% 지점" 계산 (§5.1.3)
@@ -173,7 +173,7 @@ com.monitoring.hub
 ├── ingest
 │   ├── audit                 # AuditConsumer (@KafkaListener)
 │   ├── jobresult             # JobResultConsumer
-│   └── heartbeat             # HeartbeatConsumer (OTLP JSON 트리 파싱)
+│   └── heartbeat             # HeartbeatConsumer + HeartbeatOtlpDecoder (OTLP protobuf 디코드)
 ├── producer                  # CommandPublisher (KafkaTemplate + envelope 헤더)
 ├── scheduler                 # ScheduleService (Quartz 등록), ScheduleTriggerJob
 ├── api                       # HealthController, ScheduleController,
