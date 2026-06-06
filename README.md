@@ -24,7 +24,7 @@ spec v0.2.1의 데모 범위(§0 위상 / §1~§5 토픽·도메인·페이로�
   - 등록 Agent 목록 (ONLINE/OFFLINE + last_seen + heartbeat last_seen)
   - Schedule 등록 폼 (§4.2 단일 폼 — job_type 선택으로 SCRIPT_JOB/LOG_JOB 분기)
   - 등록된 Schedule 목록
-  - 최근 commands / job-results / audit-events 3종 패널
+  - 최근 명령 / 작업 결과 / 감사 이벤트 3종 패널
 - **REST API**(외부 자동화용):
   - `POST /schedules` — Schedule 등록 (JSON)
   - `GET /schedules` — 등록된 스케줄 목록

@@ -197,7 +197,7 @@
     <div class="grid-3">
 
         <section>
-            <h2>최근 commands
+            <h2>최근 명령
                 <span th:text="'(' + ${#lists.size(commands)} + ')'" style="font-weight: normal; color:#94a3b8;">(0)</span>
             </h2>
             <div th:if="${#lists.isEmpty(commands)}" class="empty">발행된 명령 없음.</div>
@@ -217,7 +217,7 @@
         </section>
 
         <section>
-            <h2>최근 job-results
+            <h2>최근 작업 결과
                 <span th:text="'(' + ${#lists.size(jobResults)} + ')'" style="font-weight: normal; color:#94a3b8;">(0)</span>
             </h2>
             <div th:if="${#lists.isEmpty(jobResults)}" class="empty">수신된 결과 없음.</div>
@@ -241,7 +241,7 @@
         </section>
 
         <section>
-            <h2>최근 audit-events
+            <h2>최근 감사 이벤트
                 <span th:text="'(' + ${#lists.size(auditEvents)} + ')'" style="font-weight: normal; color:#94a3b8;">(0)</span>
             </h2>
             <div th:if="${#lists.isEmpty(auditEvents)}" class="empty">수신된 감사 이벤트 없음.</div>
