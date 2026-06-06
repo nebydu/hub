@@ -1,10 +1,15 @@
 {
   "permissions": {
     "deny": [
-      "Write(/docs/**)",
-      "Edit(/docs/**)",
+      "Edit(./docs/**)",
+      "Write(./docs/**)",
+      "NotebookEdit(./docs/**)",
+      "Edit(../monitoring-meta/**)",
       "Write(../monitoring-meta/**)",
-      "Edit(../monitoring-meta/**)"
+      "NotebookEdit(../monitoring-meta/**)",
+      "Edit(../script-agent/**)",
+      "Write(../script-agent/**)",
+      "NotebookEdit(../script-agent/**)"
     ],
     "defaultMode": "default",
     "additionalDirectories": [

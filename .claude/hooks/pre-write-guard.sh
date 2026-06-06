@@ -8,7 +8,7 @@
 #     permissions.deny로 막으면 설정 관리까지 하드락되는 문제가 있었다 — 2026-05-29 결정).
 #     hook은 Write/Edit/NotebookEdit 툴만 막는다.
 # 판정 대상 경로(절대경로 정규화 후 하위 포함):
-#   1) <repo>/docs   2) <repo>/../monitoring-meta
+#   1) <repo>/docs   2) <repo>/../monitoring-meta   3) <repo>/../script-agent
 # JSON 파싱 = python (이 환경에 jq 미설치). 출력 = PreToolUse permissionDecision JSON.
 set -euo pipefail
 
@@ -28,6 +28,7 @@ repo = sys.argv[1]
 forbidden = [
     norm(os.path.join(repo, "docs")),
     norm(os.path.join(repo, "..", "monitoring-meta")),
+    norm(os.path.join(repo, "..", "script-agent")),
 ]
 
 try:
