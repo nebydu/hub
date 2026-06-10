@@ -28,6 +28,36 @@ spring:
     job-store-type: memory
     auto-startup: true
 
+  # ── phase1-050: 데이터스토어 연결 설정 ────────────────────────────────────
+  # 이 단계는 클라이언트 연결 설정 + Gated 연결 smoke까지만 도입한다.
+  # 도메인 영속(repository/entity/DDL/트랜잭션)은 도입하지 않는다 — Phase 0
+  # in-memory 흐름(store 패키지)은 불변. 엔드포인트는 ${ENV:default} 패턴으로
+  # override 가능하게 하고, credential은 infra .env와 동일 변수명을 읽으며 평문
+  # 하드코딩하지 않는다(기본값은 비워 둠).
+
+  # PostgreSQL DataSource — Hikari 풀. 자동구성 DataSource를 그대로 사용한다.
+  # 핵심: initialization-fail-timeout: -1 로 부팅 시 인프라 미기동이어도 fail-fast
+  # 하지 않게 한다(부팅 회귀 0 최우선). 실제 연결 검증은 Gated smoke에서만 한다.
+  datasource:
+    url: ${HUB_PG_URL:jdbc:postgresql://localhost:5432/${POSTGRES_DB:appdb}}
+    username: ${POSTGRES_USER:}
+    password: ${POSTGRES_PASSWORD:}
+    hikari:
+      # 부팅 시 풀 초기 커넥션 획득 실패를 무시(음수 = 검증 자체를 건너뜀).
+      initialization-fail-timeout: -1
+
+  # Redis(Lettuce) — 연결은 lazy라 부팅은 항상 통과. password는 infra .env의
+  # REDIS_PASSWORD를 읽는다(데모 infra는 password 필수).
+  data:
+    redis:
+      host: ${HUB_REDIS_HOST:localhost}
+      port: ${HUB_REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+# hub 커스텀 데이터스토어 설정 (OpenSearch/MinIO).
+# OpenSearch/MinIO 빈은 생성 시 eager ping/connect 하지 않는다 — 클라이언트
+# 객체 생성만(DatastoreClientConfig). 실제 연결 검증은 Gated smoke에서만.
+
 # hub 도메인 설정 (com.monitoring.hub.config.AppProperties와 매핑).
 hub:
   kafka:
@@ -48,3 +78,16 @@ hub:
     # 이 timeout 기반 자동 OFFLINE 전환은 아직 없음 — 현재는 UI 노출용으로만 보관.
     # timeout 기반 상태 전환/Alert는 Phase 1 Agent State 작업 영역.
     heartbeat-timeout-seconds: 30
+
+  # OpenSearch 연결 (com.monitoring.hub.config.OpenSearchProperties와 매핑).
+  # 데모 infra는 http + 인증 없음. HUB_OPENSEARCH_ENDPOINT로 override 가능.
+  opensearch:
+    endpoint: ${HUB_OPENSEARCH_ENDPOINT:http://localhost:9200}
+
+  # MinIO(S3 호환) 연결 (com.monitoring.hub.config.MinioProperties와 매핑).
+  # credential은 infra .env의 MINIO_ROOT_USER/MINIO_ROOT_PASSWORD를 읽는다.
+  minio:
+    endpoint: ${HUB_MINIO_ENDPOINT:http://localhost:9000}
+    access-key: ${MINIO_ROOT_USER:}
+    secret-key: ${MINIO_ROOT_PASSWORD:}
+    bucket: ${HUB_MINIO_BUCKET:app-objects}

@@ -37,6 +37,17 @@
           자체 .proto/protoc 생성 없음 — 표준 라이브러리 내장 proto 사용.
         -->
         <opentelemetry-proto.version>1.7.0-alpha</opentelemetry-proto.version>
+
+        <!--
+          phase1-050: 데이터스토어 클라이언트 버전 핀.
+          opensearch-java는 작업 spec이 명시한 2.x 라인의 최신 안정 버전을 핀한다
+          (3.x는 OpenSearch 3.x 서버 타깃이라 범위 밖). minio는 8.x 최신 안정 버전.
+          두 라이브러리는 자체 jackson/httpclient5를 끌어오므로, Spring Boot 3.3.5 BOM이
+          관리하는 버전을 우선 유지한다(아래 의존성 주석 참조). PG/Redis는 Boot starter가
+          BOM 관리 버전을 그대로 쓰므로 별도 핀 불필요.
+        -->
+        <opensearch-java.version>2.25.0</opensearch-java.version>
+        <minio.version>8.5.17</minio.version>
     </properties>
 
     <dependencies>
@@ -94,6 +105,72 @@
             <groupId>io.opentelemetry.proto</groupId>
             <artifactId>opentelemetry-proto</artifactId>
             <version>${opentelemetry-proto.version}</version>
+        </dependency>
+
+        <!--
+          phase1-050: 데이터스토어 클라이언트 연결 설정 (PG/OpenSearch/Redis/MinIO).
+          이 단계는 클라이언트 빈/프로퍼티 노출 + Gated smoke까지만 다룬다.
+          도메인 영속(repository/entity/DDL/트랜잭션)은 범위 밖 — Phase 0 in-memory 흐름 불변.
+        -->
+
+        <!--
+          PostgreSQL — JDBC/Hikari 풀. DataSource는 Spring Boot 자동구성을 사용한다.
+          부팅 회귀 차단: spring.datasource.hikari.initialization-fail-timeout=-1 로
+          인프라 미기동 상태에서도 fail-fast 하지 않게 한다(application.yml 참조).
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!--
+          Redis — Lettuce 기반 starter. 연결은 lazy이므로 인프라 미기동 시에도 부팅 통과.
+          RedisConnectionFactory/RedisTemplate은 Spring Boot 자동구성을 사용한다.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
+        <!--
+          OpenSearch Java client (2.x 라인). 빈은 클라이언트 객체 생성만 하고 eager ping 금지
+          (DatastoreClientConfig 참조) — 실제 연결 검증은 smoke에서만.
+          httpclient5/httpcore5/jackson은 opensearch가 transitive(runtime)로 끌어오지만
+          버전은 Spring Boot 3.3.5 BOM이 관리하는 버전으로 수렴한다(BOM이 transitive 버전을
+          override). transport 구성에 필요한 HttpHost(httpcore5)는 compile 클래스패스에
+          있어야 하므로 exclude하지 않는다 — 충돌은 dependency:tree로 확인.
+        -->
+        <dependency>
+            <groupId>org.opensearch.client</groupId>
+            <artifactId>opensearch-java</artifactId>
+            <version>${opensearch-java.version}</version>
+        </dependency>
+        <!--
+          opensearch-java는 httpcore5(HttpHost 등)를 runtime scope로만 끌어온다.
+          DatastoreClientConfig가 transport 빌더에 HttpHost를 넘기려면 compile
+          클래스패스에 필요하므로 명시적으로 추가한다. 버전은 Spring Boot 3.3.5 BOM이 관리.
+        -->
+        <dependency>
+            <groupId>org.apache.httpcomponents.core5</groupId>
+            <artifactId>httpcore5</artifactId>
+        </dependency>
+
+        <!--
+          MinIO(S3 호환) Java client (8.x 라인). 빈은 클라이언트 객체 생성만 하고
+          eager connect/ping 금지(DatastoreClientConfig 참조).
+          jackson/okhttp 등 transitive 버전은 Spring Boot 3.3.5 BOM이 관리하는 버전으로
+          수렴한다(BOM이 jackson 버전을 override). minio가 jackson을 compile scope로
+          직접 사용하므로 exclude하지 않고 BOM 버전 수렴에 맡긴다 — 충돌은 dependency:tree로 확인.
+        -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>${minio.version}</version>
         </dependency>
 
         <!-- 테스트 -->

@@ -56,6 +56,27 @@ SQL_JOB(#9), Alert/Incident, 시계열 메트릭 등.
   토픽(`command-topic`, `job-results`, `audit-topic`, `heartbeats-topic`)은 `kafka-init`
   one-shot 컨테이너가 자동 생성한다.
 
+## 데이터스토어 연결 (phase1-050)
+
+PG / OpenSearch / Redis / MinIO 4종의 **클라이언트 연결 설정**을 갖춘다(연결 설정 +
+Gated 연결 smoke까지만 — 도메인 영속 repository/엔티티/DDL/트랜잭션은 아직 없으며
+Phase 0 in-memory 흐름은 불변). 엔드포인트/credential은 `application.yml`에서
+`${ENV:default}` 패턴으로 주입되며, credential은 infra `.env`와 동일 변수명
+(`POSTGRES_USER`/`POSTGRES_PASSWORD`/`REDIS_PASSWORD`/`MINIO_ROOT_USER`/
+`MINIO_ROOT_PASSWORD`)을 읽는다.
+
+인프라 미기동 상태에서도 hub는 부팅한다(PG는 Hikari `initialization-fail-timeout: -1`,
+OpenSearch/MinIO 빈은 객체 생성만 하고 eager ping/connect 안 함). 따라서 **기본
+`mvn test`는 연결 smoke를 skip**한다. 실제 인프라 연결 검증은 `SMOKE_INFRA=1`
+환경변수로 Gate를 열어 별도 실행한다:
+
+```powershell
+# 인프라가 기동된 상태에서만 (../infra docker-compose up -d)
+$env:SMOKE_INFRA=1; ./mvnw -Dtest=DatastoreConnectionSmokeTest test
+```
+
+`SMOKE_INFRA`가 없으면 smoke 테스트는 비활성화되고 기존 단위/슬라이스 테스트만 돈다.
+
 ## 빌드
 
 ```powershell
@@ -82,6 +103,12 @@ mvn spring-boot:run
 | 변수 | 기본값 | 설명 |
 |---|---|---|
 | `HUB_KAFKA_BOOTSTRAP` | `localhost:9092` | Kafka brokers. infra의 host listener 포트. |
+| `HUB_PG_URL` | `jdbc:postgresql://localhost:5432/appdb` | PostgreSQL JDBC URL. |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | (빈값) / (빈값) / `appdb` | PG credential·DB명 (infra `.env`). |
+| `HUB_OPENSEARCH_ENDPOINT` | `http://localhost:9200` | OpenSearch HTTP endpoint (인증 없음). |
+| `HUB_REDIS_HOST` / `HUB_REDIS_PORT` / `REDIS_PASSWORD` | `localhost` / `6379` / (빈값) | Redis 접속 (infra는 password 필수). |
+| `HUB_MINIO_ENDPOINT` / `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` / `HUB_MINIO_BUCKET` | `http://localhost:9000` / (빈값) / (빈값) / `app-objects` | MinIO 접속·버킷. |
+| `SMOKE_INFRA` | (미설정) | `1`이면 데이터스토어 연결 smoke 활성화. 미설정 시 skip. |
 
 `application.yml`의 ring buffer 크기와 heartbeat timeout도 환경변수로 override
 가능 (`HUB_AUDIT_RINGBUFFERSIZE` 등 Spring relaxed binding 규칙):
