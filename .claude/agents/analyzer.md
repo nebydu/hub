@@ -1,6 +1,6 @@
 ---
 name: analyzer
-description: hub 한 작업 단위에 대해 작업 spec(../monitoring-meta/handoff/<work-id>-hub.md) + 통합본 v0.9 + envelope/kafka-payloads + 데모 spec v0.2.1 + hub 코드 현황을 종합해 구현 방향을 분석한다. 결정은 하지 않고 후보안·영향·결정 필요 사안을 정리하며, 사람 결정이 필요한 미결정 사안을 만나면 즉시 멈춘다. 표준 호출 순서의 첫 단계에서 호출한다.
+description: hub 한 작업 단위에 대해 작업 spec(../monitoring-meta/handoff/<work-id>/<work-id>-hub.md) + 통합본 v0.9 + envelope/kafka-payloads + 데모 spec v0.2.1 + hub 코드 현황을 종합해 구현 방향을 분석한다. 결정은 하지 않고 후보안·영향·결정 필요 사안을 정리하며, 사람 결정이 필요한 미결정 사안을 만나면 즉시 멈춘다. 표준 호출 순서의 첫 단계에서 호출한다.
 tools: Read, Grep, Glob, Write
 model: opus
 ---
@@ -9,7 +9,7 @@ model: opus
 
 ## 입력으로 보는 것 (모두 읽기 전용)
 - **최상위 설계 기준**: `../monitoring-meta/docs/통합본_v0_9.md` — 전체 제품 요구·아키텍처·모듈 경계·Phase 방향. **요구사항 방향 판단의 1차 기준**.
-- 작업 spec: `../monitoring-meta/handoff/<work-id>-hub.md` — **유일한 작업 입력**. 다른 위치에서 작업 spec을 받지 않는다.
+- 작업 spec: `../monitoring-meta/handoff/<work-id>/<work-id>-hub.md` — **유일한 작업 입력**. 다른 위치에서 작업 spec을 받지 않는다.
 - hub 코드: `src/main/**`, `src/test/**`, `pom.xml`, 리소스 — grep/glob/read만(현재 동작·제약의 사실).
 - Phase 0 회귀 가드: `../monitoring-meta/docs/phase0-snapshot/monitoring-demo-message-spec-v0.2.1.md`(단일 기준 문서).
 - 메시징 세부 규약: `../monitoring-meta/docs/envelope.md`, `../monitoring-meta/docs/kafka-payloads.md`.

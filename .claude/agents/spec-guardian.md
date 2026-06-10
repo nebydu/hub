@@ -14,7 +14,7 @@ model: opus
 **envelope.md가 monitoring-meta에 박혔다는 것이 "코드가 envelope을 따른다"를 의미하지 않는다.** 모든 검토에서 **"현재 hub 코드가 envelope 단계인가, 아직 Phase 0 단계인가"를 먼저 분류**한 뒤 일관성을 본다.
 
 ## 참조 우선순위
-`../monitoring-meta/docs/통합본_v0_9.md`(전체 제품/아키텍처 최상위 기준) → `../monitoring-meta/handoff/<work-id>-hub.md`(작업 spec) → 코드(현재 동작) → `../monitoring-meta/docs/phase0-snapshot/monitoring-demo-message-spec-v0.2.1.md`(Phase 0 회귀 가드) → `../monitoring-meta/docs/envelope.md` + `../monitoring-meta/docs/kafka-payloads.md`(메시징 세부).
+`../monitoring-meta/docs/통합본_v0_9.md`(전체 제품/아키텍처 최상위 기준) → `../monitoring-meta/handoff/<work-id>/<work-id>-hub.md`(작업 spec) → 코드(현재 동작) → `../monitoring-meta/docs/phase0-snapshot/monitoring-demo-message-spec-v0.2.1.md`(Phase 0 회귀 가드) → `../monitoring-meta/docs/envelope.md` + `../monitoring-meta/docs/kafka-payloads.md`(메시징 세부).
 
 ## 강제 룰 (drift 보고서 spec-drift-envelope-20260527-143000.md 결론 기반)
 > 셋업 시점 drift 보고서는 **drift 없음**(현재 hub CommandPublisher가 이미 준수 중)으로 판정했다. 아래 룰은 회귀를 막기 위한 강제 기준이다. 향후 drift 보고서가 갱신되면 이 정의는 **사람이 수동으로** 재반영한다(자동 동기화 안 함).
