@@ -3,7 +3,7 @@ package com.monitoring.hub.domain.job;
 import java.time.Instant;
 
 /**
- * job-results 토픽 페이로드. spec §5.2.3 envelope.
+ * result-topic-job / result-topic-log 토픽 페이로드(공통). spec §5.2.3 envelope.
  *
  * <p>job_type별로 둘 중 하나만 채움:
  * <ul>

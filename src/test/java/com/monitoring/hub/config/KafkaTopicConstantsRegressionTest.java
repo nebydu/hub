@@ -15,11 +15,12 @@ import org.junit.jupiter.api.Test;
  *   <li>COMMANDS = "command-topic" (T4-1 변경)</li>
  *   <li>AUDIT_EVENTS = "audit-topic" (T4-1 변경)</li>
  *   <li>HEARTBEATS = "heartbeats-topic" (T4-1 변경)</li>
- *   <li>JOB_RESULTS = "job-results" (T4-2 미변경 — 이 값이 바뀌면 바로 실패)</li>
+ *   <li>RESULT_JOB = "result-topic-job" (T4-2 분리 — 구 job-results 폐기)</li>
+ *   <li>RESULT_LOG = "result-topic-log" (T4-2 분리 — 구 job-results 폐기)</li>
  * </ul>
  *
- * <p>상수 *이름*(COMMANDS/AUDIT_EVENTS/HEARTBEATS/JOB_RESULTS)은 코드 식별자로
- * 유지되며, **값만** 이 테스트가 고정한다.
+ * <p>상수 *이름*(COMMANDS/AUDIT_EVENTS/HEARTBEATS/RESULT_JOB/RESULT_LOG)은 코드
+ * 식별자로 유지되며, **값만** 이 테스트가 고정한다.
  */
 class KafkaTopicConstantsRegressionTest {
 
@@ -49,26 +50,34 @@ class KafkaTopicConstantsRegressionTest {
                 .isEqualTo("heartbeats-topic");
     }
 
-    // ─── T4-2 미변경 가드 ─────────────────────────────────────────────────────
+    // ─── T4-2 result-topic 분리 (구 job-results 폐기) ─────────────────────────
 
     @Test
-    void jobResultsTopic_remainsJobResults() {
-        // T4-2 미결(D-5 Open) — 이번 작업에서 "job-results"는 변경하지 않는다.
-        // 이 값이 달라지면 T4-2 범위 침범이다.
-        assertThat(KafkaConfig.Topics.JOB_RESULTS)
-                .as("JOB_RESULTS 토픽 값은 job-results를 유지해야 한다 (T4-2 미변경)")
-                .isEqualTo("job-results");
+    void resultJobTopic_isResultTopicJob() {
+        // phase1-041-hub T4-2: 구 "job-results" → SCRIPT_JOB 결과는 "result-topic-job"
+        assertThat(KafkaConfig.Topics.RESULT_JOB)
+                .as("RESULT_JOB 토픽 값이 result-topic-job이어야 한다 (T4-2)")
+                .isEqualTo("result-topic-job");
+    }
+
+    @Test
+    void resultLogTopic_isResultTopicLog() {
+        // phase1-041-hub T4-2: 구 "job-results" → LOG_JOB 결과는 "result-topic-log"
+        assertThat(KafkaConfig.Topics.RESULT_LOG)
+                .as("RESULT_LOG 토픽 값이 result-topic-log이어야 한다 (T4-2)")
+                .isEqualTo("result-topic-log");
     }
 
     // ─── 토픽 상수 이름(식별자) 접근 가능 여부 보조 확인 ────────────────────────
 
     @Test
-    void allFourTopicConstantsAreNonNull() {
+    void allFiveTopicConstantsAreNonNull() {
         // 상수 이름 유지 확인 — 컴파일 오류가 아닌 null 여부만 단언해
         // 식별자 존재를 런타임 레벨에서 한 번 더 확인한다.
         assertThat(KafkaConfig.Topics.COMMANDS).isNotNull();
         assertThat(KafkaConfig.Topics.AUDIT_EVENTS).isNotNull();
         assertThat(KafkaConfig.Topics.HEARTBEATS).isNotNull();
-        assertThat(KafkaConfig.Topics.JOB_RESULTS).isNotNull();
+        assertThat(KafkaConfig.Topics.RESULT_JOB).isNotNull();
+        assertThat(KafkaConfig.Topics.RESULT_LOG).isNotNull();
     }
 }

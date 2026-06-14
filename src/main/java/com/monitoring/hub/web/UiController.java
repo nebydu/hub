@@ -23,7 +23,7 @@ import com.monitoring.hub.store.ScheduleRegistry;
  * 데모 단일 페이지 UI. spec §4.2.
  *
  * <p>한 화면에 모든 in-memory state를 노출 — Agent 목록 / Schedule 등록 폼 /
- * Schedule 목록 / 최근 commands·job-results·audit-events 3종 패널 + heartbeats
+ * Schedule 목록 / 최근 commands·job 결과·audit-events 3종 패널 + heartbeats
  * latest map. heartbeats는 ring buffer가 아닌 Agent별 최신 1개이므로 별도 컬럼.
  *
  * <p>본 컨트롤러는 기존 JSON REST API({@code /schedules}, {@code /commands})와

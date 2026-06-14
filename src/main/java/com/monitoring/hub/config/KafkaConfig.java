@@ -35,7 +35,7 @@ import com.monitoring.hub.domain.job.JobResult;
  * <p>현재 정의된 토픽:
  * <ul>
  *   <li>audit-topic (typed AuditEvent consumer)</li>
- *   <li>job-results (typed JobResult consumer)</li>
+ *   <li>result-topic-job / result-topic-log (typed JobResult 멀티토픽 consumer, T4-2 분리)</li>
  *   <li>heartbeats-topic (raw byte[] consumer — OTLP protobuf를 디코딩, ADR #2)</li>
  *   <li>command-topic (typed Command producer)</li>
  * </ul>
@@ -49,8 +49,11 @@ public class KafkaConfig {
         /** Agent → BE 감사 이벤트 토픽. spec §5.3. */
         public static final String AUDIT_EVENTS = "audit-topic";
 
-        /** Agent → BE Job 실행 결과. spec §5.2. */
-        public static final String JOB_RESULTS = "job-results";
+        /** Agent → BE SCRIPT_JOB 실행 결과. spec §5.2 / ADR #5 토픽 명명 (T4-2 분리). */
+        public static final String RESULT_JOB = "result-topic-job";
+
+        /** Agent → BE LOG_JOB 수집 결과. spec §5.2 / ADR #5 토픽 명명 (T4-2 분리). */
+        public static final String RESULT_LOG = "result-topic-log";
 
         /** BE → Agent 명령. spec §5.1. */
         public static final String COMMANDS = "command-topic";
@@ -110,8 +113,9 @@ public class KafkaConfig {
     }
 
     /**
-     * job-results 전용 {@link ConsumerFactory}. 구조는 {@code auditEventConsumerFactory}와
-     * 동일 — payload 클래스만 {@link JobResult}로 바뀐다.
+     * result-topic-job / result-topic-log 공용 {@link ConsumerFactory}. 구조는
+     * {@code auditEventConsumerFactory}와 동일 — payload 클래스만 {@link JobResult}로 바뀐다.
+     * 두 토픽 payload가 동일 {@link JobResult}이므로 factory 1쌍을 양 토픽이 공유한다(T4-2 옵션 A).
      *
      * <p>{@code addTrustedPackages}는 신뢰 가능 payload 패키지를 명시 — JobResult의
      * 중첩 record(ScriptResult/LogResult)도 같은 패키지에 있으므로 단일 항목으로
@@ -135,7 +139,7 @@ public class KafkaConfig {
         return new DefaultKafkaConsumerFactory<>(props, keyDeserializer, valueDeserializer);
     }
 
-    /** job-results 전용 listener container factory. */
+    /** result-topic-job / result-topic-log 공용 listener container factory. */
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, JobResult> jobResultListenerFactory(
             ConsumerFactory<String, JobResult> jobResultConsumerFactory) {

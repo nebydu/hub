@@ -9,10 +9,11 @@ spec v0.2.1의 데모 범위(§0 위상 / §1~§5 토픽·도메인·페이로�
 
 ## 데모 BE 전체 범위
 
-- **수신 측 (Agent → BE)** 세 토픽 처리:
+- **수신 측 (Agent → BE)** 네 토픽 처리:
   - `audit-topic` — AGENT_STARTED → AgentRegistry 등록, AGENT_STOPPED → OFFLINE 마킹,
     JOB_EXECUTED → audit ring buffer 적재
-  - `job-results` — JobResult(SCRIPT_JOB / LOG_JOB) ring buffer 적재
+  - `result-topic-job` / `result-topic-log` — JobResult(SCRIPT_JOB / LOG_JOB) ring buffer 적재
+    (T4-2 분리, 단일 멀티토픽 listener)
   - `heartbeats-topic` — OTLP protobuf 디코드 (spec §5.4.2 / ADR #2), HeartbeatLatestMap 갱신 +
     AgentRegistry.lastSeen 갱신
 - **송신 측 (BE → Agent)**: Quartz 스케줄러 + `command-topic` producer
@@ -53,8 +54,8 @@ SQL_JOB(#9), Alert/Incident, 시계열 메트릭 등.
   docker compose -f ../infra/docker-compose.yml up -d
   ```
 
-  토픽(`command-topic`, `job-results`, `audit-topic`, `heartbeats-topic`)은 `kafka-init`
-  one-shot 컨테이너가 자동 생성한다.
+  토픽(`command-topic`, `result-topic-job`, `result-topic-log`, `audit-topic`,
+  `heartbeats-topic`)은 `kafka-init` one-shot 컨테이너가 자동 생성한다.
 
 ## 데이터스토어 연결 (phase1-050)
 
@@ -116,7 +117,7 @@ mvn spring-boot:run
 | 설정 | 기본값 | spec 출처 |
 |---|---|---|
 | `hub.audit.ring-buffer-size`   | 200 | §4.3 audit-topic ring |
-| `hub.job.ring-buffer-size`     | 100 | §4.3 job-results ring |
+| `hub.job.ring-buffer-size`     | 100 | §4.3 result-topic-job/log ring |
 | `hub.command.ring-buffer-size` |  50 | §4.3 command-topic ring |
 | `hub.agent.heartbeat-timeout-seconds` | 30 | §3.2 OFFLINE 판정 기준값 |
 
@@ -148,7 +149,7 @@ mvn spring-boot:run
    heartbeat이 silently 누적된다 — 로그 레벨 DEBUG에서만 보이지만,
    `HeartbeatLatestMap`과 `AgentRegistry.lastSeen`이 갱신되고 있다.
 
-7. Schedule 등록 → commands 발행 → script-agent 실행 → job-results 수신의
+7. Schedule 등록 → commands 발행 → script-agent 실행 → result-topic-job/log 수신의
    종단 시연:
 
    **브라우저(권장)**: `http://localhost:8080/`에서 등록 폼으로 1분 간격

@@ -68,7 +68,7 @@ hub:
     # spec §4.3 audit-topic ring buffer 크기.
     ring-buffer-size: 200
   job:
-    # spec §4.3 job-results ring buffer 크기.
+    # spec §4.3 result-topic-job/result-topic-log ring buffer 크기.
     ring-buffer-size: 100
   command:
     # spec §4.3 command-topic ring buffer 크기 (BE 발행 이력).

@@ -44,7 +44,7 @@ public record AppProperties(
 
     /** Job 도메인 설정. */
     public record Job(
-            /** job-results ring buffer 용량. spec §4.3 기본 100. */
+            /** result-topic-job/log 공용 ring buffer 용량. spec §4.3 기본 100. */
             @Positive int ringBufferSize
     ) {
     }

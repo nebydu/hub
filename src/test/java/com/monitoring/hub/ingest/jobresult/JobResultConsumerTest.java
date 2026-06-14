@@ -12,9 +12,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.monitoring.hub.config.AppProperties;
+import com.monitoring.hub.config.KafkaConfig;
 import com.monitoring.hub.domain.job.JobResult;
 import com.monitoring.hub.domain.job.JobStatus;
 import com.monitoring.hub.domain.job.JobType;
+import com.monitoring.hub.domain.job.LogResult;
 import com.monitoring.hub.domain.job.ScriptResult;
 import com.monitoring.hub.messaging.EnvelopeHeaders;
 import com.monitoring.hub.store.JobResultRingBuffer;
@@ -36,7 +38,9 @@ import com.monitoring.hub.store.JobResultRingBuffer;
  */
 class JobResultConsumerTest {
 
-    private static final String TOPIC = "job-results";
+    // T4-2 분리: 두 토픽을 단일 listener가 구독한다. x-source 가드 테스트는 둘 중
+    // 하나(RESULT_JOB)로 충분하고, 분기 정확성(R-C) 테스트는 두 토픽을 함께 쓴다.
+    private static final String TOPIC = KafkaConfig.Topics.RESULT_JOB;
 
     private JobResultRingBuffer buffer;
     private JobResultConsumer consumer;
@@ -66,6 +70,22 @@ class JobResultConsumerTest {
                 Instant.parse("2026-05-19T14:00:03Z"),
                 new ScriptResult(0, "ok", "", false),
                 null
+        );
+    }
+
+    /** LOG_JOB 결과 샘플 — result-topic-log로 수신되는 payload. */
+    private static JobResult sampleLogJobResult(String executionId) {
+        return new JobResult(
+                executionId,
+                "schedule-1",
+                "job-1",
+                "agent-test",
+                JobType.LOG_JOB,
+                JobStatus.SUCCESS,
+                Instant.parse("2026-05-19T15:00:01Z"),
+                Instant.parse("2026-05-19T15:00:02Z"),
+                null,
+                new LogResult(2, java.util.List.of("ERROR boom", "ERROR again"))
         );
     }
 
@@ -161,5 +181,33 @@ class JobResultConsumerTest {
 
         assertThatNoException().isThrownBy(() -> consumer.consume(record));
         assertThat(buffer.size()).isEqualTo(0);
+    }
+
+    /**
+     * R-C 분기 정확성(T4-2): SCRIPT_JOB 결과는 result-topic-job으로, LOG_JOB 결과는
+     * result-topic-log로 수신된다. 단일 멀티토픽 listener가 두 토픽을 모두 받아
+     * 같은 단일 ring buffer에 적재하며(R-A 동작 등가), payload의 job_type이
+     * 토픽과 정합함을 확인한다(오분류 0).
+     */
+    @Test
+    void consume_routesBothTopicsToSingleRingBuffer() {
+        // SCRIPT_JOB → result-topic-job
+        ConsumerRecord<String, JobResult> jobRec = new ConsumerRecord<>(
+                KafkaConfig.Topics.RESULT_JOB, 0, 0L, "agent-test", sampleJobResult("exec-job-1"));
+        // LOG_JOB → result-topic-log
+        ConsumerRecord<String, JobResult> logRec = new ConsumerRecord<>(
+                KafkaConfig.Topics.RESULT_LOG, 0, 0L, "agent-test", sampleLogJobResult("exec-log-1"));
+
+        consumer.consume(jobRec);
+        consumer.consume(logRec);
+
+        // 두 토픽 결과가 같은 단일 ring buffer에 순서대로 누적.
+        assertThat(buffer.size()).isEqualTo(2);
+        assertThat(buffer.snapshot())
+                .extracting(JobResult::executionId)
+                .containsExactly("exec-job-1", "exec-log-1");
+        // job_type ↔ 토픽 정합: result-topic-job엔 SCRIPT_JOB, result-topic-log엔 LOG_JOB.
+        assertThat(buffer.snapshot().get(0).jobType()).isEqualTo(JobType.SCRIPT_JOB);
+        assertThat(buffer.snapshot().get(1).jobType()).isEqualTo(JobType.LOG_JOB);
     }
 }

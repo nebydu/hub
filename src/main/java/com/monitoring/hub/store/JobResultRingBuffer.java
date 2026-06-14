@@ -10,7 +10,8 @@ import com.monitoring.hub.config.AppProperties;
 import com.monitoring.hub.domain.job.JobResult;
 
 /**
- * job-results 토픽 in-memory ring buffer. spec §4.3.
+ * result-topic-job / result-topic-log 토픽 공용 in-memory ring buffer. spec §4.3.
+ * 두 토픽 결과(JobResult)를 단일 buffer에 함께 적재한다(T4-2 분리, R-A 동작 등가).
  *
  * <p>{@link AuditRingBuffer}와 동일한 구조 (CircularFifoQueue + ReentrantLock).
  * capacity는 {@link AppProperties.Job#ringBufferSize()}에서 주입되며 spec 기본값

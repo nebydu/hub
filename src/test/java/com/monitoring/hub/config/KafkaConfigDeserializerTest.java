@@ -25,9 +25,9 @@ import com.monitoring.hub.domain.job.JobStatus;
 import com.monitoring.hub.domain.job.JobType;
 
 /**
- * {@link KafkaConfig}의 audit-topic / job-results 전용 ConsumerFactory가
- * 글로벌 {@link ObjectMapper}(snake_case 정책 + JavaTimeModule)를 사용해
- * {@link Deserializer}를 구성하는지 검증한다.
+ * {@link KafkaConfig}의 audit-topic / result-topic-job·result-topic-log 전용
+ * ConsumerFactory가 글로벌 {@link ObjectMapper}(snake_case 정책 + JavaTimeModule)를
+ * 사용해 {@link Deserializer}를 구성하는지 검증한다.
  *
  * <p>회귀 방지: 과거 자체 ObjectMapper(camelCase 디폴트)를 만드는 생성자
  * {@code new JsonDeserializer<>(Class, false)}로 회귀하면 snake_case 페이로드의
@@ -131,9 +131,10 @@ class KafkaConfigDeserializerTest {
                 }
                 """;
 
+        // T4-2: SCRIPT_JOB 결과는 result-topic-job으로 수신 — 동일 factory가 처리.
         try (Deserializer<JobResult> deserializer = factory.getValueDeserializer()) {
             JobResult result = deserializer.deserialize(
-                    KafkaConfig.Topics.JOB_RESULTS,
+                    KafkaConfig.Topics.RESULT_JOB,
                     payload.getBytes(StandardCharsets.UTF_8));
 
             assertThat(result.executionId()).isEqualTo("8f4b1c9e-0000-0000-0000-000000000000");
@@ -151,6 +152,49 @@ class KafkaConfigDeserializerTest {
             assertThat(result.script().stdoutCap()).isEqualTo("ok");
             assertThat(result.script().stderrCap()).isEmpty();
             assertThat(result.script().truncated()).isFalse();
+        }
+    }
+
+    @Test
+    void jobResultConsumerFactoryMapsLogPayloadFromResultLogTopic() {
+        // T4-2 회귀: result-topic-job/result-topic-log 두 토픽이 동일 factory(payload
+        // class JobResult 공통, 옵션 A)를 통과함을 LOG_JOB payload로 못 박는다.
+        ConsumerFactory<String, JobResult> factory =
+                kafkaConfig.jobResultConsumerFactory(appProperties, kafkaProperties, objectMapper);
+
+        // LOG_JOB 결과 — 중첩 record(LogResult)의 snake_case 매핑까지 검증.
+        String payload = """
+                {
+                  "execution_id": "1a2b3c4d-0000-0000-0000-000000000000",
+                  "schedule_id":  "5e6f7a8b-0000-0000-0000-000000000000",
+                  "job_id":       "9c0d1e2f-0000-0000-0000-000000000000",
+                  "agent_id":     "agent-002",
+                  "job_type":     "LOG_JOB",
+                  "status":       "SUCCESS",
+                  "started_at":   "2026-05-19T15:00:01Z",
+                  "finished_at":  "2026-05-19T15:00:02Z",
+                  "script": null,
+                  "log": {
+                    "matched_lines_count": 2,
+                    "sample_lines": ["ERROR boom", "ERROR again"]
+                  }
+                }
+                """;
+
+        try (Deserializer<JobResult> deserializer = factory.getValueDeserializer()) {
+            JobResult result = deserializer.deserialize(
+                    KafkaConfig.Topics.RESULT_LOG,
+                    payload.getBytes(StandardCharsets.UTF_8));
+
+            assertThat(result.executionId()).isEqualTo("1a2b3c4d-0000-0000-0000-000000000000");
+            assertThat(result.agentId()).isEqualTo("agent-002");
+            assertThat(result.jobType()).isEqualTo(JobType.LOG_JOB);
+            assertThat(result.status()).isEqualTo(JobStatus.SUCCESS);
+            assertThat(result.script()).isNull();
+            assertThat(result.log()).isNotNull();
+            // LogResult 중첩 record 필드도 snake_case → camelCase 매핑 적용되어야 한다.
+            assertThat(result.log().matchedLinesCount()).isEqualTo(2);
+            assertThat(result.log().sampleLines()).containsExactly("ERROR boom", "ERROR again");
         }
     }
 }

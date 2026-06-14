@@ -12,7 +12,8 @@ import com.monitoring.hub.messaging.EnvelopeHeaders;
 import com.monitoring.hub.store.JobResultRingBuffer;
 
 /**
- * job-results 토픽 consumer. spec §5.2.
+ * result-topic-job / result-topic-log 멀티토픽 consumer. spec §5.2 (T4-2 분리).
+ * 두 토픽 payload가 동일 {@link JobResult}이므로 단일 listener가 둘을 함께 구독한다.
  *
  * <p>책임:
  * <ul>
@@ -21,7 +22,7 @@ import com.monitoring.hub.store.JobResultRingBuffer;
  *       — 현재는 적재만 한다.</li>
  * </ul>
  *
- * <p>{@code execution_id}로 commands ↔ job-results ↔ JOB_EXECUTED audit을 상관
+ * <p>{@code execution_id}로 commands ↔ result-topic-job/log ↔ JOB_EXECUTED audit을 상관
  * (spec §5.1.3 / §5.2.3) — 데모 단계에서는 화면 렌더 시점에 ring buffer 스냅샷을
  * 같은 execution_id로 join하는 정도로 충분.
  *
@@ -40,14 +41,15 @@ public class JobResultConsumer {
     }
 
     @KafkaListener(
-            topics = KafkaConfig.Topics.JOB_RESULTS,
+            topics = {KafkaConfig.Topics.RESULT_JOB, KafkaConfig.Topics.RESULT_LOG},
             containerFactory = "jobResultListenerFactory",
             groupId = "hub-job-result-consumer"
     )
     public void consume(ConsumerRecord<String, JobResult> record) {
         // envelope §2.3 x-source 가드: 헤더를 읽되 부재/미지값이어도 처리는 그대로
         // 계속한다(미지값에 안 깨지는 것이 의도된 동작). 미지값일 때만 debug 로깅.
-        EnvelopeHeaders.inspectSource(record.headers(), KafkaConfig.Topics.JOB_RESULTS);
+        // 멀티토픽 구독이므로 로그 식별 문맥은 실제 수신 토픽(record.topic())을 넘긴다.
+        EnvelopeHeaders.inspectSource(record.headers(), record.topic());
 
         JobResult result = record.value();
         if (result == null) {
