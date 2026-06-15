@@ -105,7 +105,7 @@ command-topic 발행 시 Kafka 메시지 키 = `target_agent_id`(Agent 단위 or
 - 데모 spec v0.2.1의 추가 동작 불변식(Agent의 `target_agent_id` 불일치 시 무시, dispatcher 발행 순서 등) 중 일급 불변식으로 승격할 항목 — 데모 spec 원문 재확인 후 선별 필요.
 
 ## 9. Stop hook (Codex 게이트)
-- Stop hook은 `settings.json`의 `enabledPlugins`에 켜진 **`harness@monitoring` 플러그인**이 제공한다. `settings.json`에는 더 이상 Stop hook 블록도, native `hooks/codex-gate.sh`도 없다(plugin 전환 때 삭제). `settings.json`의 `hooks` 블록에 남은 것은 PreToolUse `pre-write-guard.sh`뿐이다.
+- Stop hook은 `settings.json`의 `enabledPlugins`에 켜진 **`harness@monitoring` 플러그인**이 제공한다. `settings.json`에는 더 이상 Stop hook 블록도, native `hooks/codex-gate.sh`도 없다(plugin 전환 때 삭제). PreToolUse 쓰기 가드(native `hooks/pre-write-guard.sh`)도 plugin으로 위임하며 삭제했고, hub consumer 델타는 `.claude/write-guard.profile`로 옮겼다 — 그 결과 `settings.json`에는 `hooks` 블록 자체가 없다.
 - **동작 구조**: plugin Stop hook이 hub의 도메인 delta 파일 `.claude/codex-gate.profile`을 convention 경로(`${CLAUDE_PROJECT_DIR}/.claude/codex-gate.profile`)에서 자동 로드해, plugin이 보유한 공통 게이트 골격(`codex-gate-core.sh`)을 실행한다. 실행 로직은 plugin에 있고, hub별 값(트리거/스킵 대상·리뷰 프롬프트·escalation 임계)만 profile이 주입한다.
 - **발화/스킵 대상**: `.claude/codex-gate.profile`의 `CODEX_GATE_TRIGGER_GLOBS`(트리거)·`CODEX_GATE_SKIP_GLOBS`(스킵)가 단일 진실이다. 트리거 경로(hub Java/Spring 비즈니스 코드 + `pom.xml`) 변경 시 Codex(`codex exec --sandbox read-only`) 검토를 호출하고, 스킵 경로(비코드 산출물)만 변경되면 건너뛴다. 이 문서는 glob 리터럴을 복제하지 않는다 — profile을 보라.
 - **안전장치**: `stop_hook_active` 무한루프 가드, profile의 `CODEX_GATE_FAIL_LIMIT`(FAIL 누적 한도) 초과 시 강제 통과, `CODEX_GATE_PARSE_FAIL_LIMIT`(파싱 연속 실패 한도) 초과 시 강제 통과(모두 escalation 로그 기록).
