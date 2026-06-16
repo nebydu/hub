@@ -39,7 +39,7 @@ analyzer → (proposal-review 체크포인트) → implementer → tester → (�
 ```
 - analyzer 산출물에 **사람 결정이 필요한 미결정 사안**이 있으면 즉시 멈추고 **사람을 호출**한다. implementer를 호출하지 않는다.
 - **proposal-review 체크포인트(implementer 전 1회)**: analyzer 산출물을 구현 제안으로 정리해 harness plugin의 proposal-review runner로 **1회** 검토한다. 이 검토는 **메인 세션이 직접 수행**한다(서브에이전트 아님). proposal은 **stdin**으로 전달하고, 결과는 `--out analysis/<work-id>/proposal-review.json`으로 저장한다.
-  - verdict가 `approve`가 아니거나 `confidence: low` / `missing_context` 존재 / degraded(repo에 `.claude/proposal-review.profile` 없음)면 **implementer를 호출하지 않고 멈춰 사람에게 보고**한다.
+  - verdict가 `approve`가 아니거나 `confidence: low` / `missing_context` 배열이 비어있지 않음(non-empty) / degraded(repo에 `.claude/proposal-review.profile` 없음)면 **implementer를 호출하지 않고 멈춰 사람에게 보고**한다.
   - **자동 수렴 loop 금지**: `revise`를 자동 반영해 재호출하지 않는다. `revise`/`block`은 사람이 중재한다.
   - 이 체크포인트는 기존 on-demand decision-review command(`/proposal-review`)를 handoff 파이프라인 표준 순서에 **1회 흡수**한 것이다. **Stop hook(codex-gate, §9)과는 합치지 않는다** — proposal-review는 변경 전 합의, codex-gate는 변경 후 게이트로 분리 유지(§4 scope·harness `docs/decisions/proposal-review-scope.md` 경계).
 - **implementer 재시도는 작업 spec id 단위로 최대 3회.** 초과 시 사람 escalation.
@@ -61,7 +61,7 @@ analyzer → (proposal-review 체크포인트) → implementer → tester → (�
 ## 7. sub-agent 역할 / Write 권한 요약
 | agent | Write 권한 | 핵심 |
 |---|---|---|
-| analyzer | `docs/`, `analysis/` | 종합 분석, 미결정 사안 발견 시 사람 호출 게이트 |
+| analyzer | `analysis/` | 종합 분석, 미결정 사안 발견 시 사람 호출 게이트 |
 | implementer | `src/main/**`, `src/test/**`, `pom.xml`, 리소스 | 코드 구현, 재시도 3회 한도 |
 | tester | `src/test/**`만 | 회귀 1차 책임, 프로덕션 코드 수정 금지 |
 | reviewer | 없음 | 모듈 경계(§7.2 β) critical / 강결합 warning, 보고서만 |
